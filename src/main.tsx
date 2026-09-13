@@ -1,28 +1,42 @@
-import { StrictMode, useState } from 'react';
+import { StrictMode, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
-import type { LegalGuardResult } from './core/legalguard.types';
+import { httpProviders } from './providers/http.providers';
+import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
 
-const pipeline = new LegalGuardPipeline(mockProviders);
-
 function App() {
-  const [text, setText] = useState('Вставьте текст судебного акта для тестового прогона.');
+  const [text, setText] = useState('Вставьте текст судебного акта для анализа.');
+  const [caseNumber, setCaseNumber] = useState('');
+  const [courtName, setCourtName] = useState('');
+  const [verdictDate, setVerdictDate] = useState('');
+  const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
+  const [providerMode, setProviderMode] = useState<'test' | 'server'>('test');
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pipeline = useMemo(
+    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : httpProviders),
+    [providerMode],
+  );
 
   async function run() {
     setRunning(true);
+    setError(null);
     try {
       const next = await pipeline.run(text, {
-        caseNumber: '—',
-        courtName: '—',
-        verdictDate: '—',
+        caseNumber: caseNumber || '—',
+        courtName: courtName || '—',
+        verdictDate: verdictDate || '—',
         clientName: '—',
-        complaintType: 'кассационная',
+        complaintType,
       });
       setResult(next);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Неизвестная ошибка провайдера.');
+      setResult(null);
     } finally {
       setRunning(false);
     }
@@ -33,16 +47,28 @@ function App() {
       <header>
         <div>
           <h1>LegalGuard AI</h1>
-          <p>Карманный адвокат · контроль юридического конвейера</p>
+          <p>Карманный адвокат · контролируемый юридический конвейер</p>
         </div>
-        <span className="badge">ТЕСТОВЫЙ РЕЖИМ</span>
+        <span className="badge">MVP · БЕЗ КЛЮЧЕЙ В БРАУЗЕРЕ</span>
       </header>
+
+      <section className="panel metadata">
+        <h2>Данные дела</h2>
+        <div className="fields">
+          <label>Номер дела<input value={caseNumber} onChange={(event) => setCaseNumber(event.target.value)} placeholder="№ дела" /></label>
+          <label>Суд<input value={courtName} onChange={(event) => setCourtName(event.target.value)} placeholder="Наименование суда" /></label>
+          <label>Дата акта<input value={verdictDate} onChange={(event) => setVerdictDate(event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
+          <label>Вид жалобы<select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
+          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'server')}><option value="test">Тестовый прогон</option><option value="server">Серверный провайдер</option></select></label>
+        </div>
+      </section>
 
       <section className="grid">
         <article className="panel">
           <h2>Судебный материал</h2>
           <textarea value={text} onChange={(event) => setText(event.target.value)} />
           <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
+          {error && <div className="error-box">{error}</div>}
         </article>
 
         <article className="panel">
@@ -69,13 +95,28 @@ function App() {
 
       {result && (
         <section className="panel findings">
-          <h2>Решения арбитра</h2>
+          <h2>Решения Арбитра</h2>
           {result.arbiterFindings.map((finding) => (
             <div className="finding" key={finding.id}>
-              <span className={`finding-status ${finding.status}`}>{finding.status}</span>
+              <span className={`finding-status ${finding.status}`}>{finding.status === 'accepted' ? 'принято' : finding.status === 'rejected' ? 'отклонено' : 'требует проверки'}</span>
               <div><strong>{finding.id}: {finding.claim}</strong><p>{finding.reasoning}</p></div>
             </div>
           ))}
+        </section>
+      )}
+
+      {result?.finalControl && (result.finalControl.blockingReasons.length > 0 || result.finalControl.warnings.length > 0) && (
+        <section className="panel control-details">
+          <h2>Результат финального контроля</h2>
+          {result.finalControl.blockingReasons.map((item) => <p className="control-block" key={item}>✗ {item}</p>)}
+          {result.finalControl.warnings.map((item) => <p className="control-warning" key={item}>⚠ {item}</p>)}
+        </section>
+      )}
+
+      {result?.finalDocument && (
+        <section className="panel document-preview">
+          <h2>Сформированный документ</h2>
+          <pre>{result.finalDocument}</pre>
         </section>
       )}
     </main>
