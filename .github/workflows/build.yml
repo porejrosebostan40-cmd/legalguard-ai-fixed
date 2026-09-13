@@ -16,7 +16,7 @@ jobs:
       - run: npm install
       - run: npm run build
 
-      - name: Проверка OpenAI API ключа
+      - name: Проверка OpenAI API ключа и моделей
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -25,14 +25,26 @@ jobs:
             exit 1
           fi
           echo "OPENAI_API_KEY: секрет передан в GitHub Actions"
+
           response=$(curl -sS -w '\n%{http_code}' https://api.openai.com/v1/models \
             -H "Authorization: Bearer $OPENAI_API_KEY")
           status=$(printf '%s\n' "$response" | tail -n1)
           body=$(printf '%s\n' "$response" | sed '$d')
-          if [ "$status" = "200" ]; then
-            echo "OPENAI_API_KEY: ДЕЙСТВИТЕЛЕН, OpenAI API отвечает 200"
-          else
+          if [ "$status" != "200" ]; then
             echo "OPENAI_API_KEY: ОШИБКА АВТОРИЗАЦИИ/ДОСТУПА (HTTP $status)"
             echo "$body" | head -c 500
             exit 1
           fi
+          echo "OPENAI_API_KEY: ДЕЙСТВИТЕЛЕН, OpenAI API отвечает 200"
+
+          for model in gpt-5.6-sol gpt-5.6-luna; do
+            model_response=$(curl -sS -w '\n%{http_code}' "https://api.openai.com/v1/models/$model" \
+              -H "Authorization: Bearer $OPENAI_API_KEY")
+            model_status=$(printf '%s\n' "$model_response" | tail -n1)
+            if [ "$model_status" = "200" ]; then
+              echo "OpenAI model $model: ДОСТУПНА"
+            else
+              echo "OpenAI model $model: НЕДОСТУПНА (HTTP $model_status)"
+              exit 1
+            fi
+          done
