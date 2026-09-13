@@ -3,11 +3,13 @@ import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
 import { httpProviders } from './providers/http.providers';
+import { readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
 
 function App() {
   const [text, setText] = useState('Вставьте текст судебного акта для анализа.');
+  const [fileName, setFileName] = useState<string | null>(null);
   const [caseNumber, setCaseNumber] = useState('');
   const [courtName, setCourtName] = useState('');
   const [verdictDate, setVerdictDate] = useState('');
@@ -16,15 +18,30 @@ function App() {
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const pipeline = useMemo(
     () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : httpProviders),
     [providerMode],
   );
 
+  async function loadFile(file: File | undefined) {
+    if (!file) return;
+    setError(null);
+    try {
+      const document = await readTextDocument(file);
+      setText(document.text);
+      setFileName(document.name);
+      setResult(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Не удалось прочитать файл.');
+    }
+  }
+
   async function run() {
     setRunning(true);
     setError(null);
+    setCopied(false);
     try {
       const next = await pipeline.run(text, {
         caseNumber: caseNumber || '—',
@@ -40,6 +57,12 @@ function App() {
     } finally {
       setRunning(false);
     }
+  }
+
+  async function copyDocument() {
+    if (!result?.finalDocument) return;
+    await navigator.clipboard.writeText(result.finalDocument);
+    setCopied(true);
   }
 
   return (
@@ -66,7 +89,11 @@ function App() {
       <section className="grid">
         <article className="panel">
           <h2>Судебный материал</h2>
-          <textarea value={text} onChange={(event) => setText(event.target.value)} />
+          <div className="upload-row">
+            <label className="file-button">Загрузить TXT<input type="file" accept=".txt,text/plain" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
+            {fileName && <span className="file-name">{fileName}</span>}
+          </div>
+          <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
           <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
           {error && <div className="error-box">{error}</div>}
         </article>
@@ -115,7 +142,10 @@ function App() {
 
       {result?.finalDocument && (
         <section className="panel document-preview">
-          <h2>Сформированный документ</h2>
+          <div className="document-heading">
+            <h2>Сформированный документ</h2>
+            <button type="button" onClick={() => void copyDocument()}>{copied ? 'Скопировано' : 'Копировать'}</button>
+          </div>
           <pre>{result.finalDocument}</pre>
         </section>
       )}
