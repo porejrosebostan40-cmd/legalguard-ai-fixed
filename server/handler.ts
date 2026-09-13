@@ -8,6 +8,7 @@ export interface LegalGuardServerEnv {
   OPENAI_API_KEY?: string;
   DEEPSEEK_MODEL?: string;
   OPENAI_MODEL?: string;
+  OPENAI_ANALYST_MODEL?: string;
 }
 
 type ChatMessage = { role: 'system' | 'user'; content: string };
@@ -68,7 +69,7 @@ function parseObject(content: string): Record<string, unknown> {
 
 function parseFindings(content: string): DeepSeekFinding[] {
   const object = parseObject(content);
-  if (!Array.isArray(object.findings)) throw new Error('DeepSeek не вернул массив findings.');
+  if (!Array.isArray(object.findings)) throw new Error('Аналитик не вернул массив findings.');
   return object.findings as DeepSeekFinding[];
 }
 
@@ -78,22 +79,38 @@ function parseArbiterFindings(content: string): ArbiterFinding[] {
   return object.findings as ArbiterFinding[];
 }
 
-const ANALYST_SYSTEM = `Ты аналитик юридического конвейера LegalGuard AI. Анализируй только предоставленный судебный материал. Ищи потенциально значимые факты, процессуальные нарушения, противоречия, ошибки мотивировки и основания для жалобы. Не выдумывай нормы или факты. Верни только JSON вида {"findings":[{"id":"DS-001","claim":"...","sourceQuote":"...","legalBasis":[],"confidence":0.0}]}.`;
+const ANALYST_SYSTEM = `Ты аналитик юридического конвейера LegalGuard AI. Анализируй только предоставленный судебный материал. Ищи потенциально значимые факты, процессуальные нарушения, противоречия, ошибки мотивировки и основания для жалобы. Не выдумывай нормы или факты. Каждая находка должна быть привязана к исходному материалу. Верни только JSON вида {"findings":[{"id":"DS-001","claim":"...","sourceQuote":"...","legalBasis":[],"confidence":0.0}]}.`;
 
-const ARBITER_SYSTEM = `Ты Арбитр LegalGuard AI и окончательно проверяешь находки другого ИИ. Для каждого finding реши: accepted, rejected или needs_review. Отделяй юридически значимое основание от шума. Не признавай норму применимой без достаточного основания в тексте. Верни только JSON вида {"findings":[{"id":"DS-001","claim":"...","sourceQuote":"...","legalBasis":[],"confidence":0.0,"status":"accepted","legalSignificance":"high","reasoning":"...","appealCassationRelevance":"..."}]}.`;
+const ARBITER_SYSTEM = `Ты Арбитр LegalGuard AI. Ты проверяешь находки другого ИИ и имеешь право их отклонить. Для каждого finding реши: accepted, rejected или needs_review. Отделяй юридически значимое основание от шума. Проверяй фактическую опору на судебный материал, применимость нормы и значение для выбранного вида жалобы. Не выдумывай факты, нормы и судебную практику. Если данных недостаточно, используй needs_review, а не догадку. Верни только JSON вида {"findings":[{"id":"DS-001","claim":"...","sourceQuote":"...","legalBasis":[],"confidence":0.0,"status":"accepted","legalSignificance":"high","reasoning":"...","appealCassationRelevance":"..."}]}.`;
 
 async function analyze(documentText: string, env: LegalGuardServerEnv): Promise<DeepSeekFinding[]> {
-  if (!env.DEEPSEEK_API_KEY) throw new Error('Не задан DEEPSEEK_API_KEY на сервере.');
-  const content = await callChatCompletion(
-    'https://api.deepseek.com/chat/completions',
-    env.DEEPSEEK_API_KEY,
-    env.DEEPSEEK_MODEL ?? 'deepseek-v4-pro',
-    [
-      { role: 'system', content: ANALYST_SYSTEM },
-      { role: 'user', content: documentText },
-    ],
-  );
-  return parseFindings(content);
+  if (env.DEEPSEEK_API_KEY) {
+    const content = await callChatCompletion(
+      'https://api.deepseek.com/chat/completions',
+      env.DEEPSEEK_API_KEY,
+      env.DEEPSEEK_MODEL ?? 'deepseek-v4-pro',
+      [
+        { role: 'system', content: ANALYST_SYSTEM },
+        { role: 'user', content: documentText },
+      ],
+    );
+    return parseFindings(content);
+  }
+
+  if (env.OPENAI_API_KEY) {
+    const content = await callChatCompletion(
+      'https://api.openai.com/v1/chat/completions',
+      env.OPENAI_API_KEY,
+      env.OPENAI_ANALYST_MODEL ?? env.OPENAI_MODEL ?? 'gpt-5',
+      [
+        { role: 'system', content: `${ANALYST_SYSTEM}\nСейчас ты работаешь как первичный аналитик. Не принимай окончательное решение по находкам: это задача Арбитра.` },
+        { role: 'user', content: documentText },
+      ],
+    );
+    return parseFindings(content);
+  }
+
+  throw new Error('Не задан ключ аналитического провайдера: DEEPSEEK_API_KEY или OPENAI_API_KEY.');
 }
 
 async function arbitrate(
