@@ -1,0 +1,17 @@
+name: LegalGuard DanyAPI test
+
+on:
+  push:
+    branches: ['development/core-pipeline']
+  workflow_dispatch:
+
+jobs:
+  danyapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Проверка DanyAPI
+        run: node scripts/smoke-test-danyapi.mjs
