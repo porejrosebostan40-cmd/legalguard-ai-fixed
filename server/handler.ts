@@ -101,7 +101,7 @@ async function analyze(documentText: string, env: LegalGuardServerEnv): Promise<
     const content = await callChatCompletion(
       'https://api.openai.com/v1/chat/completions',
       env.OPENAI_API_KEY,
-      env.OPENAI_ANALYST_MODEL ?? env.OPENAI_MODEL ?? 'gpt-5',
+      env.OPENAI_ANALYST_MODEL ?? 'gpt-5.6-luna',
       [
         { role: 'system', content: `${ANALYST_SYSTEM}\nСейчас ты работаешь как первичный аналитик. Не принимай окончательное решение по находкам: это задача Арбитра.` },
         { role: 'user', content: documentText },
@@ -122,7 +122,7 @@ async function arbitrate(
   const content = await callChatCompletion(
     'https://api.openai.com/v1/chat/completions',
     env.OPENAI_API_KEY,
-    env.OPENAI_MODEL ?? 'gpt-5',
+    env.OPENAI_MODEL ?? 'gpt-5.6-sol',
     [
       { role: 'system', content: ARBITER_SYSTEM },
       {
