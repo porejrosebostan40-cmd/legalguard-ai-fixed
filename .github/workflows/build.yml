@@ -15,3 +15,24 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npm run build
+
+      - name: Проверка OpenAI API ключа
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "OPENAI_API_KEY: НЕ НАЙДЕН"
+            exit 1
+          fi
+          echo "OPENAI_API_KEY: секрет передан в GitHub Actions"
+          response=$(curl -sS -w '\n%{http_code}' https://api.openai.com/v1/models \
+            -H "Authorization: Bearer $OPENAI_API_KEY")
+          status=$(printf '%s\n' "$response" | tail -n1)
+          body=$(printf '%s\n' "$response" | sed '$d')
+          if [ "$status" = "200" ]; then
+            echo "OPENAI_API_KEY: ДЕЙСТВИТЕЛЕН, OpenAI API отвечает 200"
+          else
+            echo "OPENAI_API_KEY: ОШИБКА АВТОРИЗАЦИИ/ДОСТУПА (HTTP $status)"
+            echo "$body" | head -c 500
+            exit 1
+          fi
