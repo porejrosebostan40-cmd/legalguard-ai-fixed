@@ -44,7 +44,7 @@ bash scripts/start-legalguard-android.sh
 
 ## Ручная настройка
 
-Если подготовка выполняется вручную, установите `git cmake clang make nodejs-lts curl`, соберите `llama.cpp`:
+Если подготовка выполняется вручную, установите `git cmake clang make libomp nodejs-lts curl`, соберите `llama.cpp`:
 
 ```bash
 git clone https://github.com/ggml-org/llama.cpp "$HOME/llama.cpp"
