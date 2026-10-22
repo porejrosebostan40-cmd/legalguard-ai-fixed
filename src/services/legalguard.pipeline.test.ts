@@ -48,6 +48,8 @@ describe('LegalGuard draft generation', () => {
     const result = await new LegalGuardPipeline(providers()).run(documentText, caseInfo);
     expect(result.finalControl?.passed).toBe(true);
     expect(result.finalDocument).toContain('Предполагаемая правовая основа (НЕ ПРОВЕРЕНА): статья 401.15 УПК РФ');
+    expect(result.finalDocument).toContain('https://publication.pravo.gov.ru/search');
+    expect(result.finalDocument).toContain('https://pravo.minjust.ru/');
     expect(result.readyForSubmission).toBe(false);
   });
 
