@@ -146,7 +146,7 @@ export class LegalGuardPipeline {
       : caseInfo.complaintType === 'апелляционная'
         ? 'ПРОЕКТ АПЕЛЛЯЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК'
         : 'ПРОЕКТ КАССАЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК';
-    const sectionHeading = isUdo ? 'ОБСТОЯТЕЛЬСТВА И ДОВОДЫ ХОДАТАЙСТВА (ПРОЕКТ)' : '${sectionHeading}';
+    const sectionHeading = isUdo ? 'ОБСТОЯТЕЛЬСТВА И ДОВОДЫ ХОДАТАЙСТВА (ПРОЕКТ)' : 'ОСНОВАНИЯ ЖАЛОБЫ (ПРОЕКТ)';
     const courtLabel = isUdo ? 'Суд, связанный с приговором / исполнением наказания' : 'Суд, вынесший обжалуемый акт';
     const body = strategy.map((item) => {
       const sourceCitation = item.source
