@@ -60,6 +60,19 @@ describe('runFinalControl', () => {
     expect(result.blockingReasons.some((reason) => reason.includes('продублирован'))).toBe(true);
   });
 
+  it('blocks draft generation for an impossible court-act date', () => {
+    const caseInfo = {
+      caseNumber: '1-23/2026',
+      courtName: 'Районный суд',
+      verdictDate: '31.02.2026',
+      clientName: '—',
+      complaintType: 'кассационная' as const,
+    };
+    const result = runFinalControl(documentText, [acceptedFinding()], [strategy()], caseInfo);
+    expect(result.passed).toBe(false);
+    expect(result.blockingReasons.some((reason) => reason.includes('календарно корректной'))).toBe(true);
+  });
+
   it('blocks empty source documents', () => {
     const result = runFinalControl('  ', [acceptedFinding()], [strategy()]);
     expect(result.passed).toBe(false);
