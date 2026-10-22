@@ -49,6 +49,8 @@ describe('LegalGuard draft generation', () => {
     const result = await new LegalGuardPipeline(providers()).run(documentText, caseInfo);
     expect(result.finalControl?.passed).toBe(true);
     expect(result.finalDocument).toContain('Предполагаемая правовая основа (НЕ ПРОВЕРЕНА): статья 401.15 УПК РФ');
+    expect(result.finalDocument).toContain('Цитата из материала (файл: Исходный материал)');
+    expect(result.finalDocument).toContain('«Суд указал, что обстоятельство X установлено.»');
     expect(result.finalDocument).toContain('https://publication.pravo.gov.ru/search');
     expect(result.finalDocument).toContain('https://pravo.minjust.ru/');
     expect(result.finalDocument).toContain('В суд: Суд кассационной инстанции');
@@ -72,6 +74,7 @@ describe('LegalGuard draft generation', () => {
     const result = await new LegalGuardPipeline(providers()).run(multiDocumentText, caseInfo);
     expect(result.finalControl?.passed).toBe(true);
     expect(result.arbiterFindings[0].source?.documentId).toBe('decision.txt');
+    expect(result.finalDocument).toContain('Цитата из материала (файл: decision.txt)');
   });
 
   it('blocks a draft when the same quotation cannot be attributed to one source file', async () => {
