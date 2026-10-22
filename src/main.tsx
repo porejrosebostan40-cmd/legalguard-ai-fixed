@@ -5,6 +5,7 @@ import { mockProviders } from './providers/mock.providers';
 import { combineDocuments, readTextDocument, validateDocumentBatch } from './services/document-ingestion';
 import type { DocumentInput } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
+import { areAllAcceptedFindingsReviewed } from './services/manual-review';
 import './styles.css';
 
 function App() {
@@ -26,7 +27,7 @@ function App() {
   const [diagnosticMessage, setDiagnosticMessage] = useState<string | null>(null);
   const [manuallyReviewedFindingIds, setManuallyReviewedFindingIds] = useState<string[]>([]);
   const acceptedFindingIds = result?.arbiterFindings.filter((finding) => finding.status === 'accepted').map((finding) => finding.id) ?? [];
-  const allAcceptedFindingsReviewed = acceptedFindingIds.length > 0 && acceptedFindingIds.every((id) => manuallyReviewedFindingIds.includes(id));
+  const allAcceptedFindingsReviewed = areAllAcceptedFindingsReviewed(result?.arbiterFindings ?? [], manuallyReviewedFindingIds);
 
   useEffect(() => {
     const handleProgress = (event: Event) => {
