@@ -63,6 +63,6 @@ describe('runFinalControl', () => {
   it('blocks empty source documents', () => {
     const result = runFinalControl('  ', [acceptedFinding()], [strategy()]);
     expect(result.passed).toBe(false);
-    expect(result.blockingReasons.some((reason) => reason.includes('исходный судебный материал пуст'))).toBe(true);
+    expect(result.blockingReasons.some((reason) => reason.toLocaleLowerCase('ru-RU').includes('исходный судебный материал пуст'))).toBe(true);
   });
 });
