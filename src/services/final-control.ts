@@ -5,6 +5,19 @@ import type {
   StrategyArgument,
 } from '../core/legalguard.types';
 
+function isValidCourtDate(value: string): boolean {
+  let year: number;
+  let month: number;
+  let day: number;
+  const dmy = /^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/.exec(value);
+  const iso = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value);
+  if (dmy) [, day, month, year] = dmy.map(Number) as unknown as [string, number, number, number];
+  else if (iso) [, year, month, day] = iso.map(Number) as unknown as [string, number, number, number];
+  else return false;
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
 function normalizeForComparison(value: string): string {
   return value.replace(/\\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
 }
@@ -33,6 +46,8 @@ export function runFinalControl(
     for (const [label, value] of requiredFields) {
       if (typeof value !== 'string' || !value.trim() || value.trim() === '—') {
         blockingReasons.push(`Не заполнено обязательное поле: ${label}.`);
+      } else if (label === 'дата судебного акта' && !isValidCourtDate(value.trim())) {
+        blockingReasons.push('Дата судебного акта должна быть календарно корректной и иметь формат ДД.ММ.ГГГГ или ГГГГ-ММ-ДД.');
       }
     }
   }
