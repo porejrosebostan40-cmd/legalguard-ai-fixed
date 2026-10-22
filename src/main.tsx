@@ -197,7 +197,7 @@ function App() {
           <label>Заявитель / осуждённый<input value={clientName} disabled={running} onChange={(event) => { setClientName(event.target.value); invalidateResult(); }} placeholder="Фамилия, имя, отчество" /></label>
           <label>Суд, вынесший обжалуемый акт<input value={courtName} disabled={running} onChange={(event) => { setCourtName(event.target.value); invalidateResult(); }} placeholder="Наименование суда" /></label>
           <label>Дата акта<input value={verdictDate} disabled={running} onChange={(event) => { setVerdictDate(event.target.value); invalidateResult(); }} placeholder="ДД.ММ.ГГГГ" /></label>
-          <label>Вид жалобы<select value={complaintType} disabled={running} onChange={(event) => { setComplaintType(event.target.value as ComplaintType); invalidateResult(); }}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
+          <label>Вид жалобы<select value={complaintType} disabled={running} onChange={(event) => { setComplaintType(event.target.value as ComplaintType); invalidateResult(); }}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option><option value="ходатайство об УДО">Ходатайство об УДО</option></select></label>
           <label>Источник ИИ<select value={providerMode} disabled={running} onChange={(event) => { setProviderMode(event.target.value as 'test' | 'local'); invalidateResult(); }}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option></select></label>
         </div>
       </section>
