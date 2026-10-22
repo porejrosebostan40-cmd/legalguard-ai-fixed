@@ -1,12 +1,15 @@
 import type {
   AIProviderSet,
+  ArbiterFinding,
   CaseInfo,
+  DeepSeekFinding,
   LegalGuardResult,
   PipelineTraceEntry,
   StrategyArgument,
 } from '../core/legalguard.types';
 import { runFinalControl } from './final-control';
 import { validateArbiterCoverage } from './cross-stage-validation';
+import { splitDocumentIntoChunks } from './document-chunking';
 
 function trace(
   code: string,
@@ -29,25 +32,42 @@ export class LegalGuardPipeline {
       return this.emptyResult(runId, pipelineTrace);
     }
 
-    pipelineTrace.push(trace('01 ДОКУМЕНТЫ OK', 'documents', 'ok', 'Материал принят.'));
+    const chunks = splitDocumentIntoChunks(documentText);
+    if (chunks.length === 0) {
+      pipelineTrace.push(trace('01 ДОКУМЕНТЫ ОШИБКА', 'documents', 'error', 'После нормализации в документе не осталось текста.'));
+      return this.emptyResult(runId, pipelineTrace);
+    }
+    pipelineTrace.push(trace('01 ДОКУМЕНТЫ OK', 'documents', 'ok', `Материал разделён на ${chunks.length} фрагментов для обработки в ограниченном контексте модели.`));
 
-    const findings = await this.providers.deepSeek.analyze(documentText);
+    const findings: DeepSeekFinding[] = [];
+    const arbiterFindings: ArbiterFinding[] = [];
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunkFindings = await this.providers.deepSeek.analyze(chunks[index]);
+      const namespacedFindings = chunkFindings.map((finding) => ({
+        ...finding,
+        id: `C${index + 1}-${finding.id}`,
+      }));
+      findings.push(...namespacedFindings);
+
+      if (namespacedFindings.length === 0) continue;
+      const rawArbiterFindings = await this.providers.chatGPT.arbitrate(chunks[index], namespacedFindings);
+      arbiterFindings.push(...validateArbiterCoverage(namespacedFindings, rawArbiterFindings));
+    }
+
     pipelineTrace.push(trace(
       '02 АНАЛИЗ ЗАВЕРШЁН',
       'analyst',
       findings.length ? 'ok' : 'warning',
       findings.length
-        ? `Получено кандидатов на проверку: ${findings.length}. Каждый требует подтверждения источником.`
-        : 'Провайдер не выявил кандидатов. Это не подтверждает отсутствие нарушений.',
+        ? `Обработано фрагментов: ${chunks.length}; получено кандидатов на проверку: ${findings.length}. Каждый требует подтверждения источником.`
+        : `Обработано фрагментов: ${chunks.length}. Провайдер не выявил кандидатов. Это не подтверждает отсутствие нарушений.`,
     ));
 
-    const rawArbiterFindings = await this.providers.chatGPT.arbitrate(documentText, findings);
-    const arbiterFindings = validateArbiterCoverage(findings, rawArbiterFindings);
     pipelineTrace.push(trace(
       '03 ПРАВОВАЯ ОЦЕНКА',
       'arbiter',
       arbiterFindings.length ? 'ok' : 'warning',
-      `Оценено оснований: ${arbiterFindings.length}. Локальный режим использует три последовательных роли: аналитик, арбитр и критик. Автоматическая оценка не заменяет проверку юристом.`,
+      `Оценено оснований: ${arbiterFindings.length}. Локальный режим использует три последовательных роли на одной модели, а не независимые системы. Автоматическая оценка не заменяет проверку юристом.`,
     ));
 
     const accepted = arbiterFindings.filter((finding) => finding.status === 'accepted');
