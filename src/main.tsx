@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
-import { combineDocuments, readTextDocument } from './services/document-ingestion';
+import { combineDocuments, readTextDocument, validateDocumentBatch } from './services/document-ingestion';
 import type { DocumentInput } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
@@ -43,6 +43,7 @@ function App() {
     setFileName(null);
     setError(null);
     try {
+      validateDocumentBatch(files);
       const documents: DocumentInput[] = [];
       // Sequential parsing avoids loading several large PDF workers into memory at once.
       for (const file of files) documents.push(await readTextDocument(file));
