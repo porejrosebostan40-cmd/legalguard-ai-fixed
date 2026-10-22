@@ -205,7 +205,16 @@ function App() {
           {result.arbiterFindings.map((finding) => (
             <div className="finding" key={finding.id}>
               <span className={`finding-status ${finding.status}`}>{finding.status === 'accepted' ? 'принято' : finding.status === 'rejected' ? 'отклонено' : 'требует проверки'}</span>
-              <div><strong>{finding.id}: {finding.claim}</strong><p>{finding.reasoning}</p></div>
+              <div>
+                <strong>{finding.id}: {finding.claim}</strong>
+                <p>{finding.reasoning}</p>
+                {finding.legalBasis && finding.legalBasis.length > 0 && (
+                  <div className="finding-basis">
+                    <p><strong>Предполагаемая правовая основа — НЕ ПРОВЕРЕНА:</strong> {finding.legalBasis.join('; ')}</p>
+                    <a href="https://publication.pravo.gov.ru/search" target="_blank" rel="noreferrer">Проверить в официальных публикациях</a>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </section>
