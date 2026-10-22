@@ -74,6 +74,39 @@ async function completeJson<T>(endpoint: string, modelName: string, system: stri
   return parseJsonObject<T>(content);
 }
 
+
+export async function checkLocalModelConnection(endpoint: string): Promise<string> {
+  validateLoopbackEndpoint(endpoint);
+  const modelsUrl = new URL(endpoint);
+  modelsUrl.pathname = '/v1/models';
+  modelsUrl.search = '';
+  modelsUrl.hash = '';
+
+  let response: Response;
+  try {
+    response = await fetch(modelsUrl.toString(), { method: 'GET' });
+  } catch {
+    throw new Error('Нет соединения с локальным сервером. Проверьте запуск llama-server, адрес и разрешение CORS.');
+  }
+
+  if (!response.ok) {
+    throw new Error(`Локальный сервер ответил HTTP ${response.status} на проверку /v1/models.`);
+  }
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new Error('Сервер доступен, но вернул некорректный ответ на /v1/models.');
+  }
+
+  if (!isRecord(payload) || !Array.isArray(payload.data)) {
+    throw new Error('Сервер доступен, но его ответ не похож на OpenAI-совместимый список моделей.');
+  }
+
+  return `Соединение установлено. Сервер сообщает моделей: ${payload.data.length}.`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
