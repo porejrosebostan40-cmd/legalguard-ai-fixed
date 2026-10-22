@@ -130,7 +130,7 @@ function App() {
                   </div>
                 ))}
               </div>
-              <div className={result.readyForSubmission ? 'result pass' : 'result block'}>
+              <div className={result.readyForSubmission ? 'result pass' : result.finalControl?.passed ? 'result draft' : 'result block'}>
                 {result.readyForSubmission
                   ? 'ГОТОВО К ПОДАЧЕ'
                   : result.finalControl?.passed
