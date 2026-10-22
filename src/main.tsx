@@ -1,4 +1,4 @@
-import { StrictMode, useMemo, useState } from 'react';
+import { StrictMode, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
@@ -20,6 +20,16 @@ function App() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [modelProgress, setModelProgress] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleProgress = (event: Event) => {
+      const detail = (event as CustomEvent<{ text: string; progress: number }>).detail;
+      setModelProgress(detail ? `${detail.text} (${Math.round(detail.progress * 100)}%)` : null);
+    };
+    window.addEventListener('legalguard:model-progress', handleProgress);
+    return () => window.removeEventListener('legalguard:model-progress', handleProgress);
+  }, []);
 
   const pipeline = useMemo(
     () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : providerMode === 'local' ? localProviders : httpProviders),
@@ -97,7 +107,7 @@ function App() {
             {fileName && <span className="file-name">{fileName}</span>}
           </div>
           <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
-          <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
+          <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>\n          {modelProgress && providerMode === 'local' && <p className="muted">Загрузка локальной модели: {modelProgress}</p>}
           {error && <div className="error-box">{error}</div>}
         </article>
 
