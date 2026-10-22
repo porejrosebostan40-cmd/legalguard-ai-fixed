@@ -12,6 +12,7 @@ function App() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
   const [loadingFile, setLoadingFile] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [providerMode, setProviderMode] = useState<'test' | 'local'>('test');
   const [localEndpoint, setLocalEndpoint] = useState('http://127.0.0.1:8080/v1/chat/completions');
   const [localModel, setLocalModel] = useState('local-model');
@@ -45,14 +46,18 @@ function App() {
   async function loadFile(file: File | undefined) {
     if (!file) return;
     setError(null);
+    setUploadStatus(`Выбран файл: ${file.name}. Чтение…`);
     setLoadingFile(true);
     try {
       const document = await readTextDocument(file);
       setText(document.text);
       setFileName(document.name);
+      setUploadStatus(`Загружен: ${document.name} · извлечено ${document.text.length.toLocaleString('ru-RU')} символов`);
       setResult(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Не удалось прочитать файл.');
+      const message = cause instanceof Error ? cause.message : 'Не удалось прочитать файл.';
+      setUploadStatus(`Не удалось загрузить: ${file.name}`);
+      setError(message);
     } finally {
       setLoadingFile(false);
     }
@@ -127,8 +132,8 @@ function App() {
         <article className="panel">
           <h2>Судебный материал</h2>
           <div className="upload-row">
-            <label className="file-button">{loadingFile ? 'Чтение файла…' : 'Выбрать судебный документ (TXT / PDF / DOCX)'}<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { const input = event.currentTarget; const file = input.files?.[0]; input.value = ''; void loadFile(file); }} /></label>
-            {fileName && <span className="file-name">Загружен: {fileName}</span>}
+            <label className="file-button">{loadingFile ? 'Чтение файла…' : 'Выбрать судебный документ (TXT / PDF / DOCX)'}<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { const input = event.currentTarget; const file = input.files?.[0]; input.value = ''; if (!file) { setUploadStatus('Файл не выбран.'); return; } void loadFile(file); }} /></label>
+            {uploadStatus && <span className="file-name" role="status">{uploadStatus}</span>}
           </div>
           <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
           <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
