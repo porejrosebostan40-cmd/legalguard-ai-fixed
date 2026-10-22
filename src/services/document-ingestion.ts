@@ -38,34 +38,39 @@ async function readPdf(file: File): Promise<string> {
   const pdfjs = await import('pdfjs-dist');
   const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-  const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
-  if (pdf.numPages > MAX_PDF_PAGES) {
-    await pdf.destroy();
-    throw new Error(`PDF содержит более ${MAX_PDF_PAGES} страниц. Разделите документ на части.`);
-  }
-  const pages: string[] = [];
-  let extractedChars = 0;
+  const loadingTask = pdfjs.getDocument({ data: await file.arrayBuffer() });
 
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ('str' in item ? item.str : ''))
-      .filter(Boolean)
-      .join(' ');
-    extractedChars += pageText.length;
-    if (extractedChars > MAX_EXTRACTED_DOCUMENT_CHARS) {
-      await pdf.destroy();
-      throw new Error('Извлечённый текст превышает безопасный предел 84 000 символов. Разделите документ на части.');
+  try {
+    const pdf = await loadingTask.promise;
+    if (pdf.numPages > MAX_PDF_PAGES) {
+      throw new Error(`PDF содержит более ${MAX_PDF_PAGES} страниц. Разделите документ на части.`);
     }
-    pages.push(`[Страница ${pageNumber}]\n${pageText}`);
-  }
 
-  const text = normalizeDocumentText(pages.join('\n\n'));
-  if (!text || pages.every((page) => !page.replace(/\[Страница \d+\]/, '').trim())) {
-    throw new Error('В PDF не найден текстовый слой. Возможно, это скан: OCR пока не поддерживается.');
+    const pages: string[] = [];
+    let extractedChars = 0;
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map((item) => ('str' in item ? item.str : ''))
+        .filter(Boolean)
+        .join(' ');
+      extractedChars += pageText.length;
+      if (extractedChars > MAX_EXTRACTED_DOCUMENT_CHARS) {
+        throw new Error('Извлечённый текст превышает безопасный предел 84 000 символов. Разделите документ на части.');
+      }
+      pages.push(`[Страница ${pageNumber}]\n${pageText}`);
+    }
+
+    const text = normalizeDocumentText(pages.join('\n\n'));
+    if (!text || pages.every((page) => !page.replace(/\[Страница \d+\]/, '').trim())) {
+      throw new Error('В PDF не найден текстовый слой. Возможно, это скан: OCR пока не поддерживается.');
+    }
+    return text;
+  } finally {
+    // PDF.js v6 exposes resource cleanup on the loading task, not PDFDocumentProxy.
+    await loadingTask.destroy().catch(() => undefined);
   }
-  return text;
 }
 
 function inspectDocxZip(bytes: Uint8Array): void {
