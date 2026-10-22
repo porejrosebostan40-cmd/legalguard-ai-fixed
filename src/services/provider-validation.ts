@@ -8,6 +8,7 @@ import type {
 const findingStatuses = new Set<FindingStatus>(['pending', 'accepted', 'rejected', 'needs_review']);
 const legalSignificances = new Set<LegalSignificance>(['high', 'medium', 'low', 'none']);
 const criticStatuses = new Set(['clear', 'concern', 'needs_review']);
+const MAX_FINDINGS_PER_CHUNK = 8;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -49,6 +50,7 @@ function assertUniqueIds(findings: DeepSeekFinding[], context: string): void {
 
 export function validateAnalystFindings(value: unknown): DeepSeekFinding[] {
   if (!Array.isArray(value)) throw new Error('Первый этап вернул неверный формат: findings должен быть массивом.');
+  if (value.length > MAX_FINDINGS_PER_CHUNK) throw new Error(`Первый этап вернул более ${MAX_FINDINGS_PER_CHUNK} оснований для одного фрагмента; результат остановлен, а не обрезан.`);
   const findings = value.map((item, index) => validateCommonFinding(item, index, 'Первый этап'));
   assertUniqueIds(findings, 'Первый этап');
   return findings;
@@ -56,6 +58,7 @@ export function validateAnalystFindings(value: unknown): DeepSeekFinding[] {
 
 export function validateArbiterFindings(value: unknown): ArbiterFinding[] {
   if (!Array.isArray(value)) throw new Error('Второй этап вернул неверный формат: findings должен быть массивом.');
+  if (value.length > MAX_FINDINGS_PER_CHUNK) throw new Error(`Второй этап вернул более ${MAX_FINDINGS_PER_CHUNK} оснований для одного фрагмента; результат остановлен, а не обрезан.`);
   const findings = value.map((item, index) => {
     const common = validateCommonFinding(item, index, 'Второй этап');
     if (!isRecord(item)) throw new Error(`Второй этап: основание №${index + 1} имеет неверный формат.`);
@@ -83,6 +86,7 @@ export interface CriticReview {
 
 export function validateCriticReviews(value: unknown): CriticReview[] {
   if (!Array.isArray(value)) throw new Error('Третий этап вернул неверный формат: reviews должен быть массивом.');
+  if (value.length > MAX_FINDINGS_PER_CHUNK) throw new Error(`Третий этап вернул более ${MAX_FINDINGS_PER_CHUNK} проверок для одного фрагмента; результат остановлен, а не обрезан.`);
   const ids = new Set<string>();
   return value.map((item, index) => {
     if (!isRecord(item)) throw new Error(`Третий этап: проверка №${index + 1} имеет неверный формат.`);
