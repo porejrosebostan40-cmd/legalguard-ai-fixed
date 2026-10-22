@@ -32,6 +32,9 @@ button:disabled { opacity: .55; cursor: default; }
 .finding p { margin: 6px 0 0; color: #aeb4bf; }
 .control-block { color: #ef9b9b; } .control-warning { color: #e1c27b; }
 .error-box { margin-top: 12px; padding: 10px; border: 1px solid #744f4f; border-radius: 7px; color: #f2a0a0; }
+.finding-basis { margin-top: 8px; padding: 10px; border-left: 2px solid #d4a85f; background: rgba(212, 168, 95, 0.08); }
+.finding-basis p { margin: 0 0 6px; }
+.finding-basis a { color: #b9c8e0; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; }
 .source-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; font-size: 13px; }
 .source-links a { color: #b9c8e0; text-decoration: underline; text-underline-offset: 3px; }
 .document-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; color: #d8dce3; line-height: 1.55; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
