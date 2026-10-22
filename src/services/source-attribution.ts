@@ -29,6 +29,7 @@ export function findSourceReference(documentText: string, quote: string): Source
   if (!quote.trim()) return undefined;
   const normalizedQuote = normalize(quote);
   const sections = parseDocumentSections(documentText);
+  if (hasDocumentBoundaryMarkers(documentText) && sections.length === 0) return undefined;
 
   if (sections.length > 0) {
     const matches = sections.filter((section) => normalize(section.text).includes(normalizedQuote));
