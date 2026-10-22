@@ -20,8 +20,17 @@ function trace(
   return { code, stage, status, message, timestamp: new Date().toISOString() };
 }
 
+export interface PipelineProgress {
+  currentChunk: number;
+  totalChunks: number;
+  stage: 'analyst' | 'arbiter' | 'chunk-complete' | 'complete';
+}
+
 export class LegalGuardPipeline {
-  constructor(private readonly providers: AIProviderSet) {}
+  constructor(
+    private readonly providers: AIProviderSet,
+    private readonly onProgress?: (progress: PipelineProgress) => void,
+  ) {}
 
   async run(documentText: string, caseInfo: CaseInfo): Promise<LegalGuardResult> {
     const runId = `LG-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -42,6 +51,7 @@ export class LegalGuardPipeline {
     const findings: DeepSeekFinding[] = [];
     const arbiterFindings: ArbiterFinding[] = [];
     for (let index = 0; index < chunks.length; index += 1) {
+      this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'analyst' });
       const chunkFindings = await this.providers.deepSeek.analyze(chunks[index]);
       const namespacedFindings = chunkFindings.map((finding) => ({
         ...finding,
@@ -49,10 +59,17 @@ export class LegalGuardPipeline {
       }));
       findings.push(...namespacedFindings);
 
-      if (namespacedFindings.length === 0) continue;
+      if (namespacedFindings.length === 0) {
+        this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'chunk-complete' });
+        continue;
+      }
+      this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'arbiter' });
       const rawArbiterFindings = await this.providers.chatGPT.arbitrate(chunks[index], namespacedFindings);
       arbiterFindings.push(...validateArbiterCoverage(namespacedFindings, rawArbiterFindings));
+      this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'chunk-complete' });
     }
+
+    this.onProgress?.({ currentChunk: chunks.length, totalChunks: chunks.length, stage: 'complete' });
 
     pipelineTrace.push(trace(
       '02 АНАЛИЗ ЗАВЕРШЁН',
