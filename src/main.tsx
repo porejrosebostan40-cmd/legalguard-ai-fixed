@@ -93,7 +93,7 @@ function App() {
           <label>Суд<input value={courtName} onChange={(event) => setCourtName(event.target.value)} placeholder="Наименование суда" /></label>
           <label>Дата акта<input value={verdictDate} onChange={(event) => setVerdictDate(event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
           <label>Вид жалобы<select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
-          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'server')}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option><option value="server">Внешний серверный ИИ (требует ключи)</option></select></label>
+          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local' | 'server')}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option><option value="server">Внешний серверный ИИ (требует ключи)</option></select></label>
         </div>
       </section>
 
