@@ -4,6 +4,7 @@ set -euo pipefail
 LLAMA_SERVER="${LLAMA_SERVER:-$HOME/llama.cpp/build/bin/llama-server}"
 MODEL_PATH="${MODEL_PATH:-$HOME/models/model.gguf}"
 PORT="${PORT:-8080}"
+UI_PORT="${UI_PORT:-5173}"
 CTX_SIZE="${CTX_SIZE:-4096}"
 THREADS="${THREADS:-2}"
 MODEL_ALIAS="${MODEL_ALIAS:-local-model}"
@@ -33,4 +34,4 @@ exec "$LLAMA_SERVER" \
   --ctx-size "$CTX_SIZE" \
   --threads "$THREADS" \
   --n-gpu-layers 0 \
-  --cors '*'
+  --cors "http://127.0.0.1:$UI_PORT"
