@@ -208,6 +208,11 @@ function App() {
             <button type="button" disabled={running} onClick={() => void copyDocument()}>{copied ? 'Скопировано' : 'Копировать'}</button><button type="button" disabled={running} onClick={downloadDocument}>Скачать TXT</button>
           </div>
           <pre>{result.finalDocument}</pre>
+          <div className="source-links" aria-label="Официальные источники правовой информации">
+            <a href="https://pravo.gov.ru/" target="_blank" rel="noreferrer">Официальный портал правовой информации</a>
+            <a href="https://publication.pravo.gov.ru/search" target="_blank" rel="noreferrer">Поиск официальных публикаций</a>
+            <a href="https://pravo.minjust.ru/" target="_blank" rel="noreferrer">Портал НПА Минюста</a>
+          </div>
         </section>
       )}
     </main>
