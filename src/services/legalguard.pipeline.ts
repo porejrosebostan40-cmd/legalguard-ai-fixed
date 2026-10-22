@@ -148,6 +148,9 @@ export class LegalGuardPipeline {
         : 'ПРОЕКТ КАССАЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК';
     const sectionHeading = isUdo ? 'ОБСТОЯТЕЛЬСТВА И ДОВОДЫ ХОДАТАЙСТВА (ПРОЕКТ)' : 'ОСНОВАНИЯ ЖАЛОБЫ (ПРОЕКТ)';
     const courtLabel = isUdo ? 'Суд, связанный с приговором / исполнением наказания' : 'Суд, вынесший обжалуемый акт';
+    const reliefInstruction = isUdo
+      ? 'Сформулируйте конкретную просьбу об УДО только после проверки расчёта срока, подсудности и приложенных материалов. Требуемую часть срока необходимо сверить отдельно.'
+      : '${reliefInstruction}';
     const body = strategy.map((item) => {
       const sourceCitation = item.source
         ? `\nЦитата из материала (файл: ${item.source.documentId}): «${item.source.quote}»`
