@@ -140,9 +140,12 @@ export class LegalGuardPipeline {
   }
 
   private renderDocument(caseInfo: CaseInfo, strategy: StrategyArgument[]): string {
-    const title = caseInfo.complaintType === 'апелляционная'
-      ? 'ПРОЕКТ АПЕЛЛЯЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК'
-      : 'ПРОЕКТ КАССАЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК';
+    const isUdo = caseInfo.complaintType === 'ходатайство об УДО';
+    const title = isUdo
+      ? 'ПРОЕКТ ХОДАТАЙСТВА ОБ УДО — ЧЕРНОВИК'
+      : caseInfo.complaintType === 'апелляционная'
+        ? 'ПРОЕКТ АПЕЛЛЯЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК'
+        : 'ПРОЕКТ КАССАЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК';
     const body = strategy.map((item) => {
       const sourceCitation = item.source
         ? `\nЦитата из материала (файл: ${item.source.documentId}): «${item.source.quote}»`
