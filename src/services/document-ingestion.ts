@@ -220,8 +220,17 @@ export async function readTextDocument(file: File): Promise<DocumentInput> {
  * so quotes can be traced back to the file they came from.
  */
 export function combineDocuments(documents: DocumentInput[]): string {
-  const combined = documents.map((document) => {
-    const safeName = document.name.replace(/[\r\n]+/g, ' ').trim() || 'Документ без имени';
+  const safeNames = documents.map((document) =>
+    document.name.replace(/[\r\n]+/g, ' ').trim() || 'Документ без имени',
+  );
+  const nameCounts = new Map<string, number>();
+  for (const name of safeNames) nameCounts.set(name.toLocaleLowerCase('ru-RU'), (nameCounts.get(name.toLocaleLowerCase('ru-RU')) ?? 0) + 1);
+
+  const combined = documents.map((document, index) => {
+    const originalName = safeNames[index];
+    const safeName = (nameCounts.get(originalName.toLocaleLowerCase('ru-RU')) ?? 0) > 1
+      ? `${originalName} [файл ${index + 1}]`
+      : originalName;
     return `=== НАЧАЛО ДОКУМЕНТА: ${safeName} ===\n${document.text}\n=== КОНЕЦ ДОКУМЕНТА: ${safeName} ===`;
   }).join('\n\n');
   if (combined.length > MAX_EXTRACTED_DOCUMENT_CHARS) {
