@@ -1,3 +1,14 @@
+
+export function validateDocumentBatch(files: Array<Pick<File, 'name' | 'size'>>): void {
+  if (files.length > MAX_BATCH_FILES) {
+    throw new Error(`За один запуск можно загрузить не более ${MAX_BATCH_FILES} документов.`);
+  }
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalBytes > MAX_BATCH_BYTES) {
+    throw new Error('Суммарный размер загружаемых документов превышает 50 МБ.');
+  }
+}
+
 export interface DocumentInput {
   name: string;
   text: string;
@@ -5,6 +16,8 @@ export interface DocumentInput {
 }
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
+export const MAX_BATCH_FILES = 10;
+export const MAX_BATCH_BYTES = 50 * 1024 * 1024;
 
 export function normalizeDocumentText(text: string): string {
   return text
