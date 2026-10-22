@@ -51,9 +51,20 @@ export function runFinalControl(
       blockingReasons.push(`У основания ${id || '(без ID)'} указан неизвестный статус.`);
       continue;
     }
+    if (!['high', 'medium', 'low', 'none'].includes(finding.legalSignificance)) {
+      blockingReasons.push(`У основания ${id || '(без ID)'} указана неизвестная юридическая значимость.`);
+      continue;
+    }
 
     if (finding.status === 'pending' || finding.status === 'needs_review') {
       blockingReasons.push(`Основание ${id || '(без ID)'} не прошло окончательную проверку.`);
+    }
+
+    if (finding.status === 'accepted' && finding.legalSignificance === 'none') {
+      blockingReasons.push(`Основание ${id || '(без ID)'} помечено как не имеющее юридической значимости и не может быть принято в проект.`);
+    }
+    if (finding.status === 'accepted' && finding.confidence < 0.5) {
+      warnings.push(`У основания ${id} низкая заявленная моделью уверенность; необходима дополнительная независимая проверка.`);
     }
 
     if (finding.status === 'accepted') {
