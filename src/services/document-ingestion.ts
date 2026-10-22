@@ -55,9 +55,36 @@ async function readPdf(file: File): Promise<string> {
 }
 
 async function readDocx(file: File): Promise<string> {
-  const mammoth = await import('mammoth/mammoth.browser');
-  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-  const text = normalizeDocumentText(result.value);
+  const { strFromU8, unzipSync } = await import('fflate');
+  let archive: Record<string, Uint8Array>;
+  try {
+    archive = unzipSync(new Uint8Array(await file.arrayBuffer()));
+  } catch {
+    throw new Error('Файл DOCX повреждён или не является корректным ZIP-документом.');
+  }
+
+  const documentXml = archive['word/document.xml'];
+  if (!documentXml) throw new Error('В DOCX отсутствует основной текстовый документ.');
+
+  const xml = new DOMParser().parseFromString(strFromU8(documentXml), 'application/xml');
+  if (xml.getElementsByTagName('parsererror').length > 0) {
+    throw new Error('Не удалось разобрать XML внутри DOCX.');
+  }
+
+  const wordNamespace = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const paragraphs = Array.from(xml.getElementsByTagNameNS(wordNamespace, 'p'));
+  const readNode = (node: Element): string => {
+    let value = '';
+    for (const child of Array.from(node.children)) {
+      if (child.namespaceURI !== wordNamespace) continue;
+      if (child.localName === 't') value += child.textContent ?? '';
+      else if (child.localName === 'tab') value += '\\t';
+      else if (child.localName === 'br' || child.localName === 'cr') value += '\\n';
+      else value += readNode(child);
+    }
+    return value;
+  };
+  const text = normalizeDocumentText(paragraphs.map(readNode).join('\\n'));
   if (!text) throw new Error('В DOCX не найден извлекаемый текст.');
   return text;
 }
