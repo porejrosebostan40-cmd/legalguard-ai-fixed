@@ -11,6 +11,8 @@ function App() {
   const [text, setText] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
   const [caseNumber, setCaseNumber] = useState('');
+  const [recipientCourtName, setRecipientCourtName] = useState('');
+  const [clientName, setClientName] = useState('');
   const [courtName, setCourtName] = useState('');
   const [verdictDate, setVerdictDate] = useState('');
   const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
@@ -78,6 +80,8 @@ function App() {
       });
       const next = await pipeline.run(text, {
         caseNumber: caseNumber || '—',
+        recipientCourtName: recipientCourtName || '—',
+        clientName: clientName || '—',
         courtName: courtName || '—',
         verdictDate: verdictDate || '—',
         clientName: '—',
@@ -152,7 +156,9 @@ function App() {
         <h2>Данные дела</h2>
         <div className="fields">
           <label>Номер дела<input value={caseNumber} disabled={running} onChange={(event) => { setCaseNumber(event.target.value); invalidateResult(); }} placeholder="№ дела" /></label>
-          <label>Суд<input value={courtName} disabled={running} onChange={(event) => { setCourtName(event.target.value); invalidateResult(); }} placeholder="Наименование суда" /></label>
+          <label>Суд, в который подаётся жалоба<input value={recipientCourtName} disabled={running} onChange={(event) => { setRecipientCourtName(event.target.value); invalidateResult(); }} placeholder="Укажите точное наименование суда" /></label>
+          <label>Заявитель / осуждённый<input value={clientName} disabled={running} onChange={(event) => { setClientName(event.target.value); invalidateResult(); }} placeholder="Фамилия, имя, отчество" /></label>
+          <label>Суд, вынесший обжалуемый акт<input value={courtName} disabled={running} onChange={(event) => { setCourtName(event.target.value); invalidateResult(); }} placeholder="Наименование суда" /></label>
           <label>Дата акта<input value={verdictDate} disabled={running} onChange={(event) => { setVerdictDate(event.target.value); invalidateResult(); }} placeholder="ДД.ММ.ГГГГ" /></label>
           <label>Вид жалобы<select value={complaintType} disabled={running} onChange={(event) => { setComplaintType(event.target.value as ComplaintType); invalidateResult(); }}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
           <label>Источник ИИ<select value={providerMode} disabled={running} onChange={(event) => { setProviderMode(event.target.value as 'test' | 'local'); invalidateResult(); }}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option></select></label>
