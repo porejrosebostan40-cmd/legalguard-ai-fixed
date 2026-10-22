@@ -1,0 +1,174 @@
+import type {
+  AIProviderSet,
+  ArbiterFinding,
+  DeepSeekFinding,
+  FindingStatus,
+  LegalSignificance,
+} from '../core/legalguard.types';
+
+interface LocalChatResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+}
+
+function parseJsonObject<T>(content: string): T {
+  const trimmed = content.trim().replace(/^\u0060\u0060\u0060(?:json)?\s*/i, '').replace(/\s*\u0060\u0060\u0060$/, '');
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    const first = trimmed.indexOf('{');
+    const last = trimmed.lastIndexOf('}');
+    if (first < 0 || last <= first) {
+      throw new Error('Локальная модель вернула ответ без JSON-объекта.');
+    }
+    try {
+      return JSON.parse(trimmed.slice(first, last + 1)) as T;
+    } catch {
+      throw new Error('Локальная модель вернула некорректный JSON.');
+    }
+  }
+}
+
+async function completeJson<T>(endpoint: string, system: string, user: string): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'local-model',
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+        temperature: 0,
+        stream: false,
+      }),
+    });
+  } catch {
+    throw new Error(`Не удалось подключиться к локальной модели по адресу ${endpoint}. Проверьте, что локальный сервер запущен и разрешён CORS.`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Локальный сервер модели вернул HTTP ${response.status}.`);
+  }
+
+  const payload = await response.json() as LocalChatResponse;
+  const content = payload.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || !content.trim()) {
+    throw new Error('Локальная модель вернула пустой ответ.');
+  }
+  return parseJsonObject<T>(content);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+export function createLocalProviders(endpoint: string): AIProviderSet {
+  const url = endpoint.trim();
+  if (!url) throw new Error('Укажите адрес локального сервера модели.');
+
+  return {
+    deepSeek: {
+      async analyze(documentText: string): Promise<DeepSeekFinding[]> {
+        const result = await completeJson<{ findings?: unknown }>(
+          url,
+          [
+            'Ты первичный аналитик судебного материала. Верни только JSON вида {"findings":[...]}.',
+            'Используй только факты из переданного текста. Не придумывай факты, цитаты, номера страниц или нормы закона.',
+            'Каждая находка должна содержать id, claim, sourceQuote и confidence от 0 до 1; legalBasis допускается только если норма прямо указана в материале.',
+            'sourceQuote должен быть дословным непрерывным фрагментом исходного текста, включая исходную пунктуацию. Если подтверждающей цитаты нет, не включай находку.',
+          ].join(' '),
+          JSON.stringify({ documentText }),
+        );
+
+        if (!Array.isArray(result.findings)) {
+          throw new Error('Локальный аналитик не вернул массив findings.');
+        }
+
+        return result.findings.map((item, index) => {
+          if (
+            !isRecord(item) ||
+            typeof item.id !== 'string' ||
+            typeof item.claim !== 'string' ||
+            typeof item.sourceQuote !== 'string' ||
+            typeof item.confidence !== 'number' ||
+            !Number.isFinite(item.confidence) ||
+            item.confidence < 0 ||
+            item.confidence > 1 ||
+            (item.legalBasis !== undefined && !isStringArray(item.legalBasis))
+          ) {
+            throw new Error(`Локальный аналитик вернул некорректную находку №${index + 1}.`);
+          }
+          return {
+            id: item.id,
+            claim: item.claim,
+            sourceQuote: item.sourceQuote,
+            confidence: item.confidence,
+            ...(item.legalBasis ? { legalBasis: item.legalBasis } : {}),
+          };
+        });
+      },
+    },
+    chatGPT: {
+      async arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
+        const result = await completeJson<{ decisions?: unknown }>(
+          url,
+          [
+            'Ты независимый юридический Арбитр. Верни только JSON вида {"decisions":[...]}.',
+            'Для каждого переданного id верни ровно одно решение: accepted, rejected или needs_review.',
+            'Принимай основание только если sourceQuote дословно подтверждается исходным текстом и claim логически следует из цитаты.',
+            'Не выдумывай правовые нормы и судебную практику. Если правовая значимость не может быть установлена по предоставленным данным, используй needs_review.',
+            'Для каждого решения укажи id, status, legalSignificance (high, medium, low или none), reasoning. Не меняй и не создавай id.',
+          ].join(' '),
+          JSON.stringify({ documentText, findings }),
+        );
+
+        if (!Array.isArray(result.decisions)) {
+          throw new Error('Локальный Арбитр не вернул массив decisions.');
+        }
+
+        const decisions = new Map<string, Record<string, unknown>>();
+        for (const item of result.decisions) {
+          if (!isRecord(item) || typeof item.id !== 'string' || decisions.has(item.id)) {
+            throw new Error('Локальный Арбитр вернул решение с некорректным или повторяющимся id.');
+          }
+          decisions.set(item.id, item);
+        }
+
+        const knownIds = new Set(findings.map((finding) => finding.id));
+        for (const id of decisions.keys()) {
+          if (!knownIds.has(id)) throw new Error(`Локальный Арбитр создал неизвестное основание ${id}.`);
+        }
+        for (const finding of findings) {
+          if (!decisions.has(finding.id)) {
+            throw new Error(`Локальный Арбитр не вынес решение по основанию ${finding.id}.`);
+          }
+        }
+
+        return findings.map((finding) => {
+          const decision = decisions.get(finding.id)!;
+          const validStatuses: FindingStatus[] = ['accepted', 'rejected', 'needs_review'];
+          const validSignificance: LegalSignificance[] = ['high', 'medium', 'low', 'none'];
+          if (
+            !validStatuses.includes(decision.status as FindingStatus) ||
+            !validSignificance.includes(decision.legalSignificance as LegalSignificance) ||
+            typeof decision.reasoning !== 'string'
+          ) {
+            throw new Error(`Локальный Арбитр вернул некорректное решение по основанию ${finding.id}.`);
+          }
+          return {
+            ...finding,
+            status: decision.status as FindingStatus,
+            legalSignificance: decision.legalSignificance as LegalSignificance,
+            reasoning: decision.reasoning,
+          };
+        });
+      },
+    },
+  };
+}
