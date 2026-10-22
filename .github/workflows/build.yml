@@ -46,6 +46,8 @@ jobs:
             echo "Lockfile is already current."
           else
             git commit -m "chore: refresh dependency lockfile"
+            git fetch origin "${GITHUB_HEAD_REF}"
+            git rebase "origin/${GITHUB_HEAD_REF}"
             git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_HEAD_REF}"
           fi
 
