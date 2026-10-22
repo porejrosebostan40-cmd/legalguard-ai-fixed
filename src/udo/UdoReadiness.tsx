@@ -8,6 +8,7 @@ const emptyIntake: UdoIntake = {
   offenseArticles: '',
   sentenceDescription: '',
   sentenceStartDate: '',
+  sentenceStartDateVerified: false,
   minimumEligibilityDate: '',
   eligibilityDateVerified: false,
   behaviorSummary: '',
@@ -70,6 +71,7 @@ export function UdoReadiness() {
         <label>Дата начала исчисления срока<input value={input.sentenceStartDate} onChange={(event) => update('sentenceStartDate', event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
         <label>Предполагаемая дата достижения минимального срока<input value={input.minimumEligibilityDate} onChange={(event) => update('minimumEligibilityDate', event.target.value)} placeholder="ДД.ММ.ГГГГ — только после расчёта" /></label>
       </div>
+      <label className="udo-confirm"><input type="checkbox" checked={input.sentenceStartDateVerified} onChange={(event) => update('sentenceStartDateVerified', event.target.checked)} />Я сверил дату начала исчисления срока с приговором, зачётами и последующими судебными актами.</label>
       <label className="udo-confirm"><input type="checkbox" checked={input.eligibilityDateVerified} onChange={(event) => update('eligibilityDateVerified', event.target.checked)} />Я отдельно проверил расчёт минимального срока, применимую норму и зачёты по документам дела.</label>
 
       <div className="udo-fields">
