@@ -53,7 +53,7 @@ echo "Запускаю локальную модель..."
   --ctx-size "$CTX_SIZE" \
   --threads "$THREADS" \
   --n-gpu-layers 0 \
-  --cors '*' >"$LOG_DIR/llama-server.log" 2>&1 &
+  --cors "http://127.0.0.1:$UI_PORT" >"$LOG_DIR/llama-server.log" 2>&1 &
 LLAMA_PID=$!
 
 ready=0
