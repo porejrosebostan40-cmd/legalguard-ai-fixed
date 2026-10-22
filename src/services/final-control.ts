@@ -28,6 +28,9 @@ export function runFinalControl(
   const usedIds = new Set<string>();
 
   if (!sourceText) blockingReasons.push('Исходный текст судебного материала пуст.');
+  if (findings.length === 0) blockingReasons.push('Первичный анализ не сформировал оснований для проверки.');
+  if (arbiterFindings.length === 0) blockingReasons.push('Арбитр не вернул ни одного решения.');
+  if (strategy.length === 0) blockingReasons.push('Стратегия пуста: нельзя формировать черновик жалобы без проверяемых доводов.');
 
   for (const id of new Set(findingIds)) {
     if (findingIds.filter((candidate) => candidate === id).length > 1) {
