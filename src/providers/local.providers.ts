@@ -4,6 +4,7 @@ import { validateAnalystFindings, validateArbiterFindings, validateCriticReviews
 
 const MODEL_ID = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
 let enginePromise: Promise<MLCEngineInterface> | null = null;
+let modelWorker: Worker | null = null;
 
 type WebGPUApi = { requestAdapter: () => Promise<unknown | null> };
 
@@ -18,8 +19,9 @@ function getEngine(): Promise<MLCEngineInterface> {
       if (!adapter) {
         throw new Error('Браузер сообщает о WebGPU, но совместимый GPU-адаптер не найден. Загрузка модели остановлена; текст дела не отправляется в облако.');
       }
+      modelWorker = new Worker(new URL('./local-model.worker.ts', import.meta.url), { type: 'module' });
       return CreateWebWorkerMLCEngine(
-        new Worker(new URL('./local-model.worker.ts', import.meta.url), { type: 'module' }),
+        modelWorker,
         MODEL_ID,
         { initProgressCallback: (report) => {
           window.dispatchEvent(new CustomEvent('legalguard:model-progress', {
@@ -28,6 +30,8 @@ function getEngine(): Promise<MLCEngineInterface> {
         } },
       );
     })().catch((error: unknown) => {
+      modelWorker?.terminate();
+      modelWorker = null;
       enginePromise = null;
       if (error instanceof Error && error.message.includes('GPU-адаптер')) throw error;
       throw new Error(`Не удалось загрузить локальную модель: ${error instanceof Error ? error.message : 'неизвестная ошибка'}`);
