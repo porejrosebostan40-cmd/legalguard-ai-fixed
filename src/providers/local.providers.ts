@@ -28,14 +28,14 @@ function parseJsonObject<T>(content: string): T {
   }
 }
 
-async function completeJson<T>(endpoint: string, system: string, user: string): Promise<T> {
+async function completeJson<T>(endpoint: string, modelName: string, system: string, user: string): Promise<T> {
   let response: Response;
   try {
     response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'local-model',
+        model: modelName,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
@@ -68,15 +68,26 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
-export function createLocalProviders(endpoint: string): AIProviderSet {
+export function createLocalProviders(endpoint: string, modelName = 'local-model'): AIProviderSet {
   const url = endpoint.trim();
   if (!url) throw new Error('Укажите адрес локального сервера модели.');
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error('Адрес локальной модели должен быть корректным URL.');
+  }
+  if (!['http:', 'https:'].includes(parsedUrl.protocol) || !['localhost', '127.0.0.1', '[::1]'].includes(parsedUrl.hostname)) {
+    throw new Error('Локальный режим разрешает только localhost, 127.0.0.1 или ::1. Удалённые адреса запрещены.');
+  }
+  if (!modelName.trim()) throw new Error('Укажите имя локальной модели.');
 
   return {
     deepSeek: {
       async analyze(documentText: string): Promise<DeepSeekFinding[]> {
         const result = await completeJson<{ findings?: unknown }>(
           url,
+          modelName,
           [
             'Ты первичный аналитик судебного материала. Верни только JSON вида {"findings":[...]}.',
             'Используй только факты из переданного текста. Не придумывай факты, цитаты, номера страниц или нормы закона.',
@@ -109,7 +120,7 @@ export function createLocalProviders(endpoint: string): AIProviderSet {
             claim: item.claim,
             sourceQuote: item.sourceQuote,
             confidence: item.confidence,
-            ...(item.legalBasis ? { legalBasis: item.legalBasis } : {}),
+            ...(isStringArray(item.legalBasis) ? { legalBasis: item.legalBasis } : {}),
           };
         });
       },
@@ -118,6 +129,7 @@ export function createLocalProviders(endpoint: string): AIProviderSet {
       async arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
         const result = await completeJson<{ decisions?: unknown }>(
           url,
+          modelName,
           [
             'Ты независимый юридический Арбитр. Верни только JSON вида {"decisions":[...]}.',
             'Для каждого переданного id верни ровно одно решение: accepted, rejected или needs_review.',
