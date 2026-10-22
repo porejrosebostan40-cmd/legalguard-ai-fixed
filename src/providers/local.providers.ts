@@ -64,7 +64,7 @@ const CRITIC_PROMPT = `Ты — третий этап LegalGuard AI, адвок�
 export const localProviders: AIProviderSet = {
   deepSeek: {
     async analyze(documentText: string): Promise<DeepSeekFinding[]> {
-      const result = await askJson<{ findings: unknown }>(ANALYST_PROMPT, documentText);
+      const result = await askJson<{ findings: unknown }>(ANALYST_PROMPT, JSON.stringify({ documentText }));
       return validateAnalystFindings(result.findings);
     },
   },
