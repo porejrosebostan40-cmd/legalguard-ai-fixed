@@ -9,10 +9,21 @@ export function validateDocumentBatch(files: Array<Pick<File, 'name' | 'size'>>)
   }
 }
 
+export type DocumentRole = 'court_act' | 'party_submission' | 'evidence' | 'characteristic' | 'other';
+
+export const DOCUMENT_ROLE_LABELS: Record<DocumentRole, string> = {
+  court_act: 'судебный акт',
+  party_submission: 'документ стороны',
+  evidence: 'доказательство или приложение',
+  characteristic: 'характеристика',
+  other: 'иной материал',
+};
+
 export interface DocumentInput {
   name: string;
   text: string;
   mimeType: string;
+  role?: DocumentRole;
 }
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -231,7 +242,8 @@ export function combineDocuments(documents: DocumentInput[]): string {
     const safeName = (nameCounts.get(originalName.toLocaleLowerCase('ru-RU')) ?? 0) > 1
       ? `${originalName} [файл ${index + 1}]`
       : originalName;
-    return `=== НАЧАЛО ДОКУМЕНТА: ${safeName} ===\n${document.text}\n=== КОНЕЦ ДОКУМЕНТА: ${safeName} ===`;
+    const boundaryName = document.role ? `${safeName} [тип материала: ${DOCUMENT_ROLE_LABELS[document.role]}]` : safeName;
+    return `=== НАЧАЛО ДОКУМЕНТА: ${boundaryName} ===\n${document.text}\n=== КОНЕЦ ДОКУМЕНТА: ${boundaryName} ===`;
   }).join('\n\n');
   if (combined.length > MAX_EXTRACTED_DOCUMENT_CHARS) {
     throw new Error('Общий извлечённый текст превышает безопасный предел 84 000 символов. Разделите материалы на несколько запусков.');
