@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { normalizeDocumentText, readTextDocument } from './document-ingestion';
+import { combineDocuments, normalizeDocumentText, readTextDocument } from './document-ingestion';
 
 const { pdfMock } = vi.hoisted(() => ({ pdfMock: { empty: false } }));
 
@@ -62,6 +62,17 @@ describe('document ingestion', () => {
     const result = await readTextDocument(file);
     expect(result.mimeType).toContain('wordprocessingml.document');
     expect(result.text).toBe('Текст из DOCX');
+  });
+
+  it('combines multiple files with explicit, sanitized document boundaries', () => {
+    const combined = combineDocuments([
+      { name: 'verdict.txt', text: 'Текст приговора.', mimeType: 'text/plain' },
+      { name: 'appeal\nreview.pdf', text: 'Текст апелляции.', mimeType: 'application/pdf' },
+    ]);
+    expect(combined).toContain('=== НАЧАЛО ДОКУМЕНТА: verdict.txt ===');
+    expect(combined).toContain('=== КОНЕЦ ДОКУМЕНТА: verdict.txt ===');
+    expect(combined).toContain('=== НАЧАЛО ДОКУМЕНТА: appeal review.pdf ===');
+    expect(combined).toContain('Текст апелляции.');
   });
 
   it('rejects empty TXT files', async () => {
