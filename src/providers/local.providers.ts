@@ -19,9 +19,10 @@ function getEngine(): Promise<MLCEngineInterface> {
       if (!adapter) {
         throw new Error('Браузер сообщает о WebGPU, но совместимый GPU-адаптер не найден. Загрузка модели остановлена; текст дела не отправляется в облако.');
       }
-      modelWorker = new Worker(new URL('./local-model.worker.ts', import.meta.url), { type: 'module' });
+      const worker = new Worker(new URL('./local-model.worker.ts', import.meta.url), { type: 'module' });
+      modelWorker = worker;
       return CreateWebWorkerMLCEngine(
-        modelWorker,
+        worker,
         MODEL_ID,
         { initProgressCallback: (report) => {
           window.dispatchEvent(new CustomEvent('legalguard:model-progress', {
