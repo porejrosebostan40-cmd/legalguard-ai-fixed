@@ -31,10 +31,22 @@ export class LegalGuardPipeline {
     pipelineTrace.push(trace('01 ДОКУМЕНТЫ OK', 'documents', 'ok', 'Материал принят.'));
 
     const findings = await this.providers.deepSeek.analyze(documentText);
-    pipelineTrace.push(trace('02 АНАЛИТИК OK', 'analyst', 'ok', `DeepSeek выявил оснований: ${findings.length}.`));
+    pipelineTrace.push(trace(
+      '02 АНАЛИЗ ЗАВЕРШЁН',
+      'analyst',
+      findings.length ? 'ok' : 'warning',
+      findings.length
+        ? `Получено кандидатов на проверку: ${findings.length}. Каждый требует подтверждения источником.`
+        : 'Провайдер не выявил кандидатов. Это не подтверждает отсутствие нарушений.',
+    ));
 
     const arbiterFindings = await this.providers.chatGPT.arbitrate(documentText, findings);
-    pipelineTrace.push(trace('03 АРБИТР OK', 'arbiter', 'ok', 'ChatGPT выполнил юридическую оценку каждого основания.'));
+    pipelineTrace.push(trace(
+      '03 ПРАВОВАЯ ОЦЕНКА',
+      'arbiter',
+      arbiterFindings.length ? 'ok' : 'warning',
+      `Оценено оснований: ${arbiterFindings.length}. Автоматическая оценка не заменяет проверку юристом.`,
+    ));
 
     const accepted = arbiterFindings.filter((finding) => finding.status === 'accepted');
     const strategy: StrategyArgument[] = accepted.map((finding, index) => ({
@@ -44,14 +56,16 @@ export class LegalGuardPipeline {
       argument: finding.reasoning,
       requestedRelief: `Проверить довод в пределах ${caseInfo.complaintType} жалобы.`,
     }));
-    pipelineTrace.push(trace('04 СТРАТЕГИЯ OK', 'strategist', 'ok', `В стратегию принято оснований: ${strategy.length}.`));
+    pipelineTrace.push(trace('04 ПРОЕКТ СТРАТЕГИИ', 'strategist', strategy.length ? 'ok' : 'warning', `В проект стратегии включено оснований: ${strategy.length}.`));
 
-    const finalControl = runFinalControl(arbiterFindings, strategy);
+    const finalControl = runFinalControl(documentText, arbiterFindings, strategy);
     pipelineTrace.push(trace(
       '05 ФИНАЛЬНЫЙ КОНТРОЛЬ',
       'final-control',
       finalControl.passed ? 'ok' : 'error',
-      finalControl.passed ? 'Финальный контроль пройден.' : `Подача заблокирована: ${finalControl.blockingReasons.join(' ')}`,
+      finalControl.passed
+        ? 'Формальные проверки пройдены. Проект всё равно требует проверки человеком.'
+        : `Формирование проекта заблокировано: ${finalControl.blockingReasons.join(' ')}`,
     ));
 
     return {
@@ -62,7 +76,8 @@ export class LegalGuardPipeline {
       finalControl,
       finalDocument: finalControl.passed ? this.renderDocument(caseInfo, strategy) : null,
       trace: pipelineTrace,
-      readyForSubmission: finalControl.passed,
+      // A generated draft must never be represented as ready for court filing.
+      readyForSubmission: false,
     };
   }
 
@@ -88,6 +103,6 @@ export class LegalGuardPipeline {
       return `${item.position}. ${item.heading}\n${item.argument}${relief}`;
     }).join('\n\n');
 
-    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nДокумент сформирован после прохождения финального контроля LegalGuard AI.`;
+    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nПРОЕКТ СФОРМИРОВАН LegalGuard AI. Перед использованием необходимо проверить факты, правовые ссылки, процессуальные требования и сроки; автоматический контроль не подтверждает готовность к подаче.`;
   }
 }
