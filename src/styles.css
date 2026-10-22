@@ -33,6 +33,7 @@ button:disabled { opacity: .55; cursor: default; }
 .finding-status { font-size: 11px; text-transform: uppercase; font-weight: 800; }
 .finding-status.accepted { color: #8bd49b; } .finding-status.rejected { color: #ef8585; } .finding-status.needs_review { color: #e1c27b; }
 .finding p { margin: 6px 0 0; color: #aeb4bf; }
+.finding .source-quote { color: #d4c28d; overflow-wrap: anywhere; font-size: 12px; }
 .control-block { color: #ef9b9b; } .control-warning { color: #e1c27b; }
 .error-box { margin-top: 12px; padding: 10px; border: 1px solid #744f4f; border-radius: 7px; color: #f2a0a0; }
 .document-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; color: #d8dce3; line-height: 1.55; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
