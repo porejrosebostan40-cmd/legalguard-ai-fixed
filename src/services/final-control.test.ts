@@ -26,6 +26,7 @@ function strategy(overrides: Partial<StrategyArgument> = {}): StrategyArgument {
     position: 1,
     heading: 'Проверка вывода суда',
     argument: 'Сопоставить судебный вывод с материалами дела.',
+    source: { documentId: 'Исходный материал', quote: 'Суд установил, что осуждённый прибыл в суд 12 марта.' },
     ...overrides,
   };
 }
