@@ -39,6 +39,9 @@ export interface StrategyArgument {
   heading: string;
   argument: string;
   requestedRelief?: string;
+  sourceQuote?: string;
+  sourceLineStart?: number;
+  sourceLineEnd?: number;
 }
 
 export interface FinalControlResult {
