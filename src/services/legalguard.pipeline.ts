@@ -43,6 +43,9 @@ export class LegalGuardPipeline {
       heading: finding.claim,
       argument: finding.reasoning,
       requestedRelief: `Проверить довод в пределах ${caseInfo.complaintType} жалобы.`,
+      sourceQuote: finding.source?.quote || finding.sourceQuote,
+      sourceLineStart: finding.source?.startLine,
+      sourceLineEnd: finding.source?.endLine,
     }));
     pipelineTrace.push(trace('04 СТРАТЕГИЯ OK', 'strategist', 'ok', `В стратегию принято оснований: ${strategy.length}.`));
 
@@ -84,8 +87,12 @@ export class LegalGuardPipeline {
       ? 'АПЕЛЛЯЦИОННАЯ ЖАЛОБА'
       : 'КАССАЦИОННАЯ ЖАЛОБА';
     const body = strategy.map((item) => {
+      const quote = item.sourceQuote ? `\nПодтверждающая цитата: «${item.sourceQuote}»` : '\nПодтверждающая цитата: отсутствует — довод требует проверки.';
+      const lineRange = item.sourceLineStart !== undefined
+        ? `\nСтроки исходного текста: ${item.sourceLineStart}${item.sourceLineEnd !== undefined && item.sourceLineEnd !== item.sourceLineStart ? `–${item.sourceLineEnd}` : ''}`
+        : '';
       const relief = item.requestedRelief ? `\nПросительная часть по доводу: ${item.requestedRelief}` : '';
-      return `${item.position}. ${item.heading}\n${item.argument}${relief}`;
+      return `${item.position}. ${item.heading}\n${item.argument}${quote}${lineRange}${relief}`;
     }).join('\n\n');
 
     return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nЧЕРНОВИК LegalGuard AI. Автоматический контроль не подтверждает юридическую точность или готовность к подаче. Проверьте факты, цитаты, нормы права, сроки и процессуальную форму.`;
