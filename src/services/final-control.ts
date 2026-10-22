@@ -57,7 +57,7 @@ export function runFinalControl(
     }
 
     if (finding.status === 'pending' || finding.status === 'needs_review') {
-      blockingReasons.push(`Основание ${id || '(без ID)'} не прошло окончательную проверку.`);
+      warnings.push(`Основание ${id || '(без ID)'} требует ручной оценки и не включено в проект.`);
     }
 
     if (finding.status === 'accepted' && finding.legalSignificance === 'none') {
