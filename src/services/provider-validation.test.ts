@@ -42,8 +42,7 @@ describe('AI provider output validation', () => {
   });
 
   it('rejects missing arbiter reasoning', () => {
-    const { reasoning: _reasoning, ...withoutReasoning } = arbiterFinding;
-    expect(() => validateArbiterFindings([withoutReasoning])).toThrow('reasoning');
+    expect(() => validateArbiterFindings([{ ...analystFinding, status: 'needs_review', legalSignificance: 'medium' }])).toThrow('reasoning');
   });
 
   it('accepts an explicit needs_review status', () => {
