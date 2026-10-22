@@ -30,6 +30,12 @@ describe('source attribution', () => {
     expect(findSourceReference(text, boundary)).toBeUndefined();
   });
 
+  it('does not treat malformed combined-file markers as plain text', () => {
+    const malformed = '=== НАЧАЛО ДОКУМЕНТА: verdict.txt ===\nСуд установил обстоятельство.';
+    expect(findSourceReference(malformed, 'Суд установил обстоятельство.')).toBeUndefined();
+    expect(isSourceReferenceGrounded(malformed, { documentId: 'Исходный материал', quote: 'Суд установил обстоятельство.' })).toBe(false);
+  });
+
   it('attributes manually entered text without inventing a file name', () => {
     const source = findSourceReference('Суд установил обстоятельство.', 'Суд установил');
     expect(source?.documentId).toBe('Исходный материал');
