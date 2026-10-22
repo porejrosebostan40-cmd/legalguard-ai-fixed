@@ -24,6 +24,9 @@ function App() {
   const [modelProgress, setModelProgress] = useState<string | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<string | null>(null);
   const [diagnosticMessage, setDiagnosticMessage] = useState<string | null>(null);
+  const [manuallyReviewedFindingIds, setManuallyReviewedFindingIds] = useState<string[]>([]);
+  const acceptedFindingIds = result?.arbiterFindings.filter((finding) => finding.status === 'accepted').map((finding) => finding.id) ?? [];
+  const allAcceptedFindingsReviewed = acceptedFindingIds.length > 0 && acceptedFindingIds.every((id) => manuallyReviewedFindingIds.includes(id));
 
   useEffect(() => {
     const handleProgress = (event: Event) => {
@@ -37,6 +40,7 @@ function App() {
   function invalidateResult() {
     setResult(null);
     setCopied(false);
+    setManuallyReviewedFindingIds([]);
     setAnalysisProgress(null);
   }
 
@@ -63,6 +67,7 @@ function App() {
     setError(null);
     setCopied(false);
     setResult(null);
+    setManuallyReviewedFindingIds([]);
     setAnalysisProgress('Подготовка материала к анализу…');
     try {
       const providers = providerMode === 'test'
@@ -90,6 +95,7 @@ function App() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Неизвестная ошибка провайдера.');
       setResult(null);
+      setManuallyReviewedFindingIds([]);
     } finally {
       setRunning(false);
     }
@@ -112,7 +118,7 @@ function App() {
   }
 
   function downloadDocument() {
-    if (!result?.finalDocument) return;
+    if (!result?.finalDocument || !allAcceptedFindingsReviewed || !result.finalControl?.passed) return;
     try {
       const blob = new Blob([result.finalDocument], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -130,7 +136,7 @@ function App() {
   }
 
   async function copyDocument() {
-    if (!result?.finalDocument) return;
+    if (!result?.finalDocument || !allAcceptedFindingsReviewed || !result.finalControl?.passed) return;
     try {
       await navigator.clipboard.writeText(result.finalDocument);
       setCopied(true);
@@ -197,7 +203,11 @@ function App() {
                 ))}
               </div>
               <div className={result.readyForSubmission ? 'result pass' : 'result block'}>
-                {result.finalControl?.passed ? 'ЧЕРНОВИК СОЗДАН — ТРЕБУЕТ ПРОВЕРКИ' : 'НЕДОСТАТОЧНО ДАННЫХ / КОНТРОЛЬ НЕ ПРОЙДЕН'}
+                {result.finalControl?.passed
+                  ? allAcceptedFindingsReviewed
+                    ? 'ФОРМАЛЬНЫЕ ПРОВЕРКИ И РУЧНЫЕ ОТМЕТКИ ЕСТЬ — ПРОЕКТ ВСЁ РАВНО НЕ ГОТОВ К ПОДАЧЕ'
+                    : 'ФОРМАЛЬНЫЕ ПРОВЕРКИ ПРОЙДЕНЫ — ОЖИДАЕТСЯ РУЧНАЯ ПРОВЕРКА ДОВОДОВ'
+                  : 'НЕДОСТАТОЧНО ДАННЫХ / КОНТРОЛЬ НЕ ПРОЙДЕН'}
               </div>
             </>
           )}
@@ -207,6 +217,7 @@ function App() {
       {result && (
         <section className="panel findings">
           <h2>Решения Арбитра</h2>
+          {result.arbiterFindings.some((finding) => finding.status === 'accepted') && <p className="control-warning">Принятие моделью не подтверждает юридическую правильность довода. До показа проекта вручную проверьте каждую цитату по указанному файлу, каждую норму по официальному источнику и редакции на нужную дату, а также применимость нормы к делу. Отметка фиксирует только ваше подтверждение в интерфейсе; система не проверяет факт такой сверки.</p>}
           {result.arbiterFindings.map((finding) => (
             <div className="finding" key={finding.id}>
               <span className={`finding-status ${finding.status}`}>{finding.status === 'accepted' ? 'принято' : finding.status === 'rejected' ? 'отклонено' : 'требует проверки'}</span>
@@ -221,6 +232,7 @@ function App() {
                     <a href="https://publication.pravo.gov.ru/search" target="_blank" rel="noreferrer">Проверить в официальных публикациях</a>
                   </div>
                 )}
+                {finding.status === 'accepted' && <label className="manual-review"><input type="checkbox" disabled={running} checked={manuallyReviewedFindingIds.includes(finding.id)} onChange={(event) => { setManuallyReviewedFindingIds((current) => event.target.checked ? [...new Set([...current, finding.id])] : current.filter((id) => id !== finding.id)); setCopied(false); }} />Я вручную сверил цитату с файлом-источником, проверил правовую норму и её редакцию на нужную дату и оценил применимость довода.</label>}
               </div>
             </div>
           ))}
@@ -235,7 +247,9 @@ function App() {
         </section>
       )}
 
-      {result?.finalDocument && (
+      {result?.finalDocument && result.finalControl?.passed && !allAcceptedFindingsReviewed && <section className="panel control-details"><h2>Проект пока скрыт</h2><p>Сверьте каждый принятый довод и отметьте его вручную. Это не заменяет профессиональную юридическую проверку и не делает документ готовым к подаче.</p><p>Проверено вручную: {manuallyReviewedFindingIds.filter((id) => acceptedFindingIds.includes(id)).length} из {acceptedFindingIds.length} доводов.</p></section>}
+
+      {result?.finalDocument && result.finalControl?.passed && allAcceptedFindingsReviewed && (
         <section className="panel document-preview">
           <div className="document-heading">
             <h2>Сформированный документ</h2>
