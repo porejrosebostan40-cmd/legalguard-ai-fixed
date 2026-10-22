@@ -96,7 +96,7 @@ export function runFinalControl(
       if (!quote) {
         blockingReasons.push(`У принятого основания ${id} отсутствует точная цитата из исходного документа.`);
       } else {
-        const quoteWords = quote.split(/\\s+/).filter(Boolean);
+        const quoteWords = quote.split(/\s+/).filter(Boolean);
         if (quote.length < 25 || quoteWords.length < 5) {
           blockingReasons.push(`Цитата основания ${id} слишком короткая для надёжной привязки к доказательству; требуется более полный фрагмент.`);
         }
