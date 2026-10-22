@@ -75,3 +75,14 @@ it('runs analyst and arbiter against an OpenAI-compatible local response', async
   expect(decisions[0].reasoning).toContain('сверки');
   expect(fetchSpy).toHaveBeenCalledTimes(2);
 });
+
+it('reports a configured model name that is absent from the local server', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
+    JSON.stringify({ data: [{ id: 'different-model' }] }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  ));
+
+  const { checkLocalModelConnection } = await import('../src/providers/local.providers');
+  await expect(checkLocalModelConnection('http://127.0.0.1:8080/v1/chat/completions', 'local-model'))
+    .rejects.toThrow('модель «local-model» не найдена');
+});
