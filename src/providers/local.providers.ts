@@ -5,19 +5,29 @@ import { validateAnalystFindings, validateArbiterFindings, validateCriticReviews
 const MODEL_ID = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
 let enginePromise: Promise<MLCEngine> | null = null;
 
+type WebGPUApi = { requestAdapter: () => Promise<unknown | null> };
+
 function getEngine(): Promise<MLCEngine> {
-  if (!(navigator as Navigator & { gpu?: unknown }).gpu) {
+  const gpu = (navigator as Navigator & { gpu?: WebGPUApi }).gpu;
+  if (!gpu || typeof gpu.requestAdapter !== 'function') {
     throw new Error('На этом браузере или устройстве WebGPU недоступен. Локальная модель не может запуститься. Используйте совместимое устройство; автоматической отправки дела в облако не будет.');
   }
   if (!enginePromise) {
-    enginePromise = CreateMLCEngine(MODEL_ID, {
-      initProgressCallback: (report) => {
-        window.dispatchEvent(new CustomEvent('legalguard:model-progress', {
-          detail: { text: report.text, progress: report.progress },
-        }));
-      },
-    }).catch((error: unknown) => {
+    enginePromise = (async () => {
+      const adapter = await gpu.requestAdapter();
+      if (!adapter) {
+        throw new Error('Браузер сообщает о WebGPU, но совместимый GPU-адаптер не найден. Загрузка модели остановлена; текст дела не отправляется в облако.');
+      }
+      return CreateMLCEngine(MODEL_ID, {
+        initProgressCallback: (report) => {
+          window.dispatchEvent(new CustomEvent('legalguard:model-progress', {
+            detail: { text: report.text, progress: report.progress },
+          }));
+        },
+      });
+    })().catch((error: unknown) => {
       enginePromise = null;
+      if (error instanceof Error && error.message.includes('GPU-адаптер')) throw error;
       throw new Error(`Не удалось загрузить локальную модель: ${error instanceof Error ? error.message : 'неизвестная ошибка'}`);
     });
   }
