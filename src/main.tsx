@@ -7,9 +7,11 @@ import { DOCUMENT_ROLE_LABELS, type DocumentInput, type DocumentRole } from './s
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import { areAllFindingsReviewed } from './services/manual-review';
 import { validateCaseInfo } from './services/case-info-validation';
+import { UdoReadiness } from './udo/UdoReadiness';
 import './styles.css';
 
 function App() {
+  const [activeView, setActiveView] = useState<'complaint' | 'udo'>('complaint');
   const [text, setText] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
   const [documents, setDocuments] = useState<DocumentInput[]>([]);
@@ -179,16 +181,30 @@ function App() {
     }
   }
 
+  const appHeader = (
+    <header>
+      <div>
+        <h1>LegalGuard AI</h1>
+        <p>Инструмент анализа судебных материалов · контролируемый конвейер</p>
+      </div>
+      <span className="badge">{providerMode === 'local' ? 'ЛОКАЛЬНАЯ МОДЕЛЬ · БЕЗ ВНЕШНЕГО AI API' : 'РЕЖИМ ПРОВЕРКИ ИНТЕРФЕЙСА'}</span>
+    </header>
+  );
+  const viewTabs = (
+    <nav className="view-tabs" aria-label="Режим работы">
+      <button type="button" className={activeView === 'complaint' ? 'view-tab active' : 'view-tab'} aria-pressed={activeView === 'complaint'} disabled={running} onClick={() => setActiveView('complaint')}>Анализ жалобы</button>
+      <button type="button" className={activeView === 'udo' ? 'view-tab active' : 'view-tab'} aria-pressed={activeView === 'udo'} disabled={running} onClick={() => setActiveView('udo')}>Подготовка к УДО</button>
+    </nav>
+  );
+
+  if (activeView === 'udo') {
+    return <main className="shell">{appHeader}{viewTabs}<UdoReadiness /></main>;
+  }
+
   return (
     <main className="shell">
-      <header>
-        <div>
-          <h1>LegalGuard AI</h1>
-          <p>Инструмент анализа судебных материалов · контролируемый конвейер</p>
-        </div>
-        <span className="badge">{providerMode === 'local' ? 'ЛОКАЛЬНАЯ МОДЕЛЬ · БЕЗ ВНЕШНЕГО AI API' : 'РЕЖИМ ПРОВЕРКИ ИНТЕРФЕЙСА'}</span>
-      </header>
-
+      {appHeader}
+      {viewTabs}
       <section className="panel metadata">
         <h2>Данные дела</h2>
         <div className="fields">
