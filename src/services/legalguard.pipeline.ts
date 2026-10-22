@@ -56,6 +56,7 @@ export class LegalGuardPipeline {
       position: index + 1,
       heading: finding.claim,
       argument: finding.reasoning,
+      legalBasis: finding.legalBasis ?? [],
       requestedRelief: `Проверить довод в пределах ${caseInfo.complaintType} жалобы.`,
     }));
     pipelineTrace.push(trace('04 ПРОЕКТ СТРАТЕГИИ', 'strategist', strategy.length ? 'ok' : 'warning', `В проект стратегии включено оснований: ${strategy.length}.`));
@@ -101,8 +102,11 @@ export class LegalGuardPipeline {
       ? 'АПЕЛЛЯЦИОННАЯ ЖАЛОБА'
       : 'КАССАЦИОННАЯ ЖАЛОБА';
     const body = strategy.map((item) => {
+      const basis = item.legalBasis?.length
+        ? `\nПредполагаемая правовая основа (НЕ ПРОВЕРЕНА): ${item.legalBasis.join('; ')}. Проверьте официальный источник и редакцию на юридически значимую дату.`
+        : '\nПравовая основа не указана; довод требует отдельной юридической проверки.';
       const relief = item.requestedRelief ? `\nПросительная часть по доводу: ${item.requestedRelief}` : '';
-      return `${item.position}. ${item.heading}\n${item.argument}${relief}`;
+      return `${item.position}. ${item.heading}\n${item.argument}${basis}${relief}`;
     }).join('\n\n');
 
     return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nПРОЕКТ СФОРМИРОВАН LegalGuard AI. Перед использованием необходимо проверить факты, правовые ссылки, процессуальные требования и сроки; автоматический контроль не подтверждает готовность к подаче.`;
