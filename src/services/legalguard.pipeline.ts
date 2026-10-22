@@ -53,7 +53,7 @@ export class LegalGuardPipeline {
     const arbiterFindings: ArbiterFinding[] = [];
     for (let index = 0; index < chunks.length; index += 1) {
       this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'analyst' });
-      const chunkFindings = await this.providers.deepSeek.analyze(chunks[index]);
+      const chunkFindings = await this.providers.deepSeek.analyze(chunks[index], caseInfo.complaintType);
       const namespacedFindings = chunkFindings.map((finding) => ({
         ...finding,
         id: `C${index + 1}-${finding.id}`,
@@ -65,7 +65,7 @@ export class LegalGuardPipeline {
         continue;
       }
       this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'arbiter' });
-      const rawArbiterFindings = await this.providers.chatGPT.arbitrate(chunks[index], namespacedFindings);
+      const rawArbiterFindings = await this.providers.chatGPT.arbitrate(chunks[index], namespacedFindings, caseInfo.complaintType);
       const coveredFindings = validateArbiterCoverage(namespacedFindings, rawArbiterFindings);
       arbiterFindings.push(...coveredFindings.map((finding) => ({
         ...finding,
