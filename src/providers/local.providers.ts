@@ -83,15 +83,16 @@ export const localProviders: AIProviderSet = {
     },
   },
   chatGPT: {
-    async arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
+    async arbitrate(documentText: string, findings: DeepSeekFinding[], complaintType?: ComplaintType): Promise<ArbiterFinding[]> {
+      const isUdo = complaintType === 'ходатайство об УДО';
       const result = await askJson<{ findings: unknown }>(
-        ARBITER_PROMPT,
+        isUdo ? UDO_ARBITER_PROMPT : ARBITER_PROMPT,
         JSON.stringify({ documentText, findings }),
       );
       const arbiterFindings = validateArbiterFindings(result.findings);
 
       const reviews = await askJson<{ reviews: unknown }>(
-        CRITIC_PROMPT,
+        isUdo ? UDO_CRITIC_PROMPT : CRITIC_PROMPT,
         JSON.stringify({ documentText, findings: arbiterFindings }),
       );
       const validatedReviews = validateCriticReviews(reviews.reviews);
