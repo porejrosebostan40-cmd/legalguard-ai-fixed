@@ -35,7 +35,7 @@ function App() {
     setCheckingLocal(true);
     setLocalStatus(null);
     try {
-      const message = await checkLocalModelConnection(localEndpoint);
+      const message = await checkLocalModelConnection(localEndpoint, localModel);
       setLocalStatus({ kind: 'ok', message });
     } catch (cause) {
       setLocalStatus({ kind: 'error', message: cause instanceof Error ? cause.message : 'Не удалось проверить локальный сервер.' });
