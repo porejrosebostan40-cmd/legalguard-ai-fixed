@@ -167,7 +167,7 @@ function App() {
           <h1>LegalGuard AI</h1>
           <p>Инструмент анализа судебных материалов · контролируемый конвейер</p>
         </div>
-        <span className="badge">{providerMode === 'local' ? 'ЛОКАЛЬНЫЙ ИИ · БЕЗ API' : 'РЕЖИМ ПРОВЕРКИ ИНТЕРФЕЙСА'}</span>
+        <span className="badge">{providerMode === 'local' ? 'ЛОКАЛЬНАЯ МОДЕЛЬ · БЕЗ ВНЕШНЕГО AI API' : 'РЕЖИМ ПРОВЕРКИ ИНТЕРФЕЙСА'}</span>
       </header>
 
       <section className="panel metadata">
@@ -187,7 +187,7 @@ function App() {
         <article className="panel">
           <h2>Судебный материал</h2>
           {providerMode === 'test' && <p className="control-warning">Тестовый режим не выполняет юридический анализ и не создаёт вымышленные основания.</p>}
-          {providerMode === 'local' && <p className="control-warning">Локальная модель работает на устройстве при наличии WebGPU. При первом запуске потребуется загрузка модели примерно на 1–2 ГБ. Текст дела не отправляется в AI API. На неподдерживаемых устройствах анализ не запустится.</p>}
+          {providerMode === 'local' && <p className="control-warning">Локальная модель работает на устройстве при наличии WebGPU. Для выбранной модели конфигурация WebLLM указывает около 1,63 ГБ требуемой видеопамяти; дополнительно нужны память браузера и место для загрузки весов. Точный объём загрузки зависит от файлов модели и кэша. Текст дела не отправляется во внешний AI API. На неподдерживаемых устройствах анализ не запустится.</p>}
           <div className="upload-row">
             <label className="file-button">Загрузить документы<input type="file" multiple disabled={running} accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void loadFiles(files); }} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
