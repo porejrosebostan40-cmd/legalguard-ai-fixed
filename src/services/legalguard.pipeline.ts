@@ -62,7 +62,7 @@ export class LegalGuardPipeline {
       finalControl,
       finalDocument: finalControl.passed ? this.renderDocument(caseInfo, strategy) : null,
       trace: pipelineTrace,
-      readyForSubmission: finalControl.passed,
+      readyForSubmission: false,
     };
   }
 
@@ -88,6 +88,6 @@ export class LegalGuardPipeline {
       return `${item.position}. ${item.heading}\n${item.argument}${relief}`;
     }).join('\n\n');
 
-    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nДокумент сформирован после прохождения финального контроля LegalGuard AI.`;
+    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nЧЕРНОВИК LegalGuard AI. Автоматический контроль не подтверждает юридическую точность или готовность к подаче. Проверьте факты, цитаты, нормы права, сроки и процессуальную форму.`;
   }
 }
