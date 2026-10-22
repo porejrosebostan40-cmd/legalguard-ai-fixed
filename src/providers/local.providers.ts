@@ -147,10 +147,24 @@ export function createLocalProviders(endpoint: string, modelName = 'local-model'
               throw new Error(`Локальный аналитик вернул некорректную находку №${findingIndex + 1} во фрагменте ${chunkIndex + 1}.`);
             }
 
+            const quoteIndex = documentText.indexOf(item.sourceQuote);
+            const sourceLineStart = quoteIndex >= 0
+              ? documentText.slice(0, quoteIndex).split('\\n').length
+              : undefined;
+            const sourceLineEnd = sourceLineStart !== undefined
+              ? sourceLineStart + item.sourceQuote.split('\\n').length - 1
+              : undefined;
+
             allFindings.push({
               id: `C${String(chunkIndex + 1).padStart(3, '0')}-F${String(findingIndex + 1).padStart(3, '0')}`,
               claim: item.claim,
               sourceQuote: item.sourceQuote,
+              source: {
+                documentId: 'uploaded-material',
+                quote: item.sourceQuote,
+                ...(sourceLineStart !== undefined ? { startLine: sourceLineStart } : {}),
+                ...(sourceLineEnd !== undefined ? { endLine: sourceLineEnd } : {}),
+              },
               confidence: item.confidence,
               ...(isStringArray(item.legalBasis) ? { legalBasis: item.legalBasis } : {}),
             });
