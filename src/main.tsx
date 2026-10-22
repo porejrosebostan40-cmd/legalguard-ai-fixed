@@ -9,7 +9,7 @@ import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
 
 function App() {
-  const [text, setText] = useState('Вставьте текст судебного акта для анализа.');
+  const [text, setText] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
   const [caseNumber, setCaseNumber] = useState('');
   const [courtName, setCourtName] = useState('');
@@ -83,7 +83,7 @@ function App() {
           <h1>LegalGuard AI</h1>
           <p>Инструмент анализа судебных материалов · контролируемый конвейер</p>
         </div>
-        <span className="badge">ЛОКАЛЬНЫЙ РЕЖИМ · БЕЗ API</span>
+        <span className="badge">{providerMode === 'local' ? 'ЛОКАЛЬНЫЙ ИИ · БЕЗ API' : providerMode === 'server' ? 'ВНЕШНИЙ ИИ · НУЖНЫ КЛЮЧИ' : 'РЕЖИМ ПРОВЕРКИ ИНТЕРФЕЙСА'}</span>
       </header>
 
       <section className="panel metadata">
