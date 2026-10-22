@@ -30,7 +30,15 @@ const caseInfo: CaseInfo = {
 function providers(arbiterFinding: ArbiterFinding = accepted): AIProviderSet {
   return {
     deepSeek: { analyze: async () => [candidate] },
-    chatGPT: { arbitrate: async () => [arbiterFinding] },
+    chatGPT: {
+      arbitrate: async (_documentText, findings) => findings.map((finding) => ({
+        ...arbiterFinding,
+        ...finding,
+        status: arbiterFinding.status,
+        legalSignificance: arbiterFinding.legalSignificance,
+        reasoning: arbiterFinding.reasoning,
+      })),
+    },
   };
 }
 
@@ -40,6 +48,37 @@ describe('LegalGuard draft generation', () => {
     expect(result.finalControl?.passed).toBe(true);
     expect(result.finalDocument).toContain('Предполагаемая правовая основа (НЕ ПРОВЕРЕНА): статья 401.15 УПК РФ');
     expect(result.readyForSubmission).toBe(false);
+  });
+
+  it('analyzes long documents in multiple chunks and namespaces finding IDs', async () => {
+    const longDocument = Array.from({ length: 140 }, () => documentText).join('\n\n');
+    let analyzedChunks = 0;
+    const chunkProviders: AIProviderSet = {
+      deepSeek: {
+        analyze: async () => {
+          analyzedChunks += 1;
+          return [candidate];
+        },
+      },
+      chatGPT: {
+        arbitrate: async (_chunk, findings) => findings.map((finding) => ({
+          ...accepted,
+          ...finding,
+          status: 'accepted',
+          legalSignificance: 'high',
+          reasoning: accepted.reasoning,
+        })),
+      },
+    };
+    const result = await new LegalGuardPipeline(chunkProviders).run(longDocument, caseInfo);
+    expect(analyzedChunks).toBeGreaterThan(1);
+    expect(result.findings.every((finding) => finding.id.startsWith('C'))).toBe(true);
+    expect(result.finalDocument).not.toBeNull();
+  });
+
+  it('stops safely when a document exceeds the chunk limit', async () => {
+    const tooLong = documentText.repeat(6000);
+    await expect(new LegalGuardPipeline(providers()).run(tooLong, caseInfo)).rejects.toThrow('превышает безопасный предел');
   });
 
   it('does not generate a draft when an accepted finding lacks an exact source quote', async () => {
