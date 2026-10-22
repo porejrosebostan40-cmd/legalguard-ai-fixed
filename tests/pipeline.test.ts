@@ -41,7 +41,7 @@ describe('LegalGuardPipeline', () => {
     expect(result.finalControl?.passed).toBe(true);
     expect(result.finalDocument).toContain('ЧЕРНОВИК ДОВОДОВ К КАССАЦИОННОЙ ЖАЛОБЕ');
     expect(result.finalDocument).toContain('Подтверждающая цитата');
-    expect(result.finalDocument).toContain('не готовую к подаче');
+    expect(result.finalDocument).toContain('не готовая к подаче');
     expect(result.readyForSubmission).toBe(false);
   });
 
