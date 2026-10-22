@@ -134,6 +134,10 @@ describe('document ingestion', () => {
     expect(combined).toContain('Текст апелляции.');
   });
 
+  it('rejects combined text beyond the model context budget', () => {
+    expect(() => combineDocuments([{ name: 'large.txt', text: 'x'.repeat(84_000), mimeType: 'text/plain' }])).toThrow('84 000 символов');
+  });
+
   it('limits the number of uploaded documents', () => {
     const files = Array.from({ length: MAX_BATCH_FILES + 1 }, (_, index) => ({ name: `file-${index}.txt`, size: 1 }));
     expect(() => validateDocumentBatch(files)).toThrow('не более 10 документов');
