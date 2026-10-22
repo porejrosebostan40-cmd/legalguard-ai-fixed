@@ -79,6 +79,14 @@ describe('runFinalControl', () => {
     expect(result.blockingReasons.some((reason) => reason.includes('Цитата основания F-1 не найдена'))).toBe(false);
   });
 
+  it('does not accept a generated document-boundary label as a court quote', () => {
+    const boundary = '=== НАЧАЛО ДОКУМЕНТА: decision.txt ===';
+    const wrappedText = `${boundary}\n${documentText}\n=== КОНЕЦ ДОКУМЕНТА: decision.txt ===`;
+    const result = runFinalControl(wrappedText, [acceptedFinding({ sourceQuote: boundary })], [strategy()]);
+    expect(result.passed).toBe(false);
+    expect(result.blockingReasons.some((reason) => reason.includes('Цитата основания F-1 не найдена'))).toBe(true);
+  });
+
   it('blocks empty source documents', () => {
     const result = runFinalControl('  ', [acceptedFinding()], [strategy()]);
     expect(result.passed).toBe(false);
