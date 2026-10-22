@@ -100,6 +100,8 @@ function App() {
             <span>Имя модели<input value={localModel} onChange={(event) => setLocalModel(event.target.value)} placeholder="local-model" /></span>
           </label>
         )}
+        {providerMode === 'test' && <p className="mode-note">Демонстрационный режим использует заранее заданные примеры. Он не анализирует ваш документ как реальная модель.</p>}
+        {providerMode === 'server' && <p className="mode-note">В этом режиме текст отправляется на настроенный серверный API. Не загружайте конфиденциальные материалы, пока не проверены адрес сервера и его политика обработки данных.</p>}
       </section>
 
       <section className="grid">
