@@ -65,12 +65,28 @@ describe('runFinalControl', () => {
       caseNumber: '1-23/2026',
       courtName: 'Районный суд',
       verdictDate: '31.02.2026',
-      clientName: '—',
+      clientName: 'Иванов Иван Иванович',
+      recipientCourtName: 'Суд кассационной инстанции',
       complaintType: 'кассационная' as const,
     };
     const result = runFinalControl(documentText, [acceptedFinding()], [strategy()], caseInfo);
     expect(result.passed).toBe(false);
     expect(result.blockingReasons.some((reason) => reason.includes('календарно корректной'))).toBe(true);
+  });
+
+  it('blocks draft generation when applicant or recipient court is missing', () => {
+    const caseInfo = {
+      caseNumber: '1-23/2026',
+      recipientCourtName: '—',
+      courtName: 'Районный суд',
+      verdictDate: '01.10.2026',
+      clientName: '—',
+      complaintType: 'кассационная' as const,
+    };
+    const result = runFinalControl(documentText, [acceptedFinding()], [strategy()], caseInfo);
+    expect(result.passed).toBe(false);
+    expect(result.blockingReasons.some((reason) => reason.includes('суд, в который подаётся жалоба'))).toBe(true);
+    expect(result.blockingReasons.some((reason) => reason.includes('заявитель / осуждённый'))).toBe(true);
   });
 
   it('matches source quotes despite whitespace and line-break differences', () => {
