@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
-import { readTextDocument } from './services/document-ingestion';
+import { combineDocuments, readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
 
@@ -35,17 +35,18 @@ function App() {
     setCopied(false);
   }
 
-  async function loadFile(file: File | undefined) {
-    if (!file) return;
+  async function loadFiles(files: File[]) {
+    if (files.length === 0) return;
     invalidateResult();
     setError(null);
     try {
-      const document = await readTextDocument(file);
-      setText(document.text);
-      setFileName(document.name);
-      invalidateResult();
+      const documents = [];
+      // Sequential parsing avoids loading several large PDF workers into memory at once.
+      for (const file of files) documents.push(await readTextDocument(file));
+      setText(combineDocuments(documents));
+      setFileName(documents.map((document) => document.name).join(', '));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Не удалось прочитать файл.');
+      setError(cause instanceof Error ? cause.message : 'Не удалось прочитать документы.');
     }
   }
 
@@ -148,7 +149,7 @@ function App() {
           {providerMode === 'test' && <p className="control-warning">Тестовый режим не выполняет юридический анализ и не создаёт вымышленные основания.</p>}
           {providerMode === 'local' && <p className="control-warning">Локальная модель работает на устройстве при наличии WebGPU. При первом запуске потребуется загрузка модели примерно на 1–2 ГБ. Текст дела не отправляется в AI API. На неподдерживаемых устройствах анализ не запустится.</p>}
           <div className="upload-row">
-            <label className="file-button">Загрузить документ<input type="file" disabled={running} accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
+            <label className="file-button">Загрузить документы<input type="file" multiple disabled={running} accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void loadFiles(files); }} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
           </div>
           <textarea value={text} disabled={running} onChange={(event) => { setText(event.target.value); setFileName(null); invalidateResult(); }} />
