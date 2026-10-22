@@ -2,7 +2,6 @@ import { StrictMode, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
-import { httpProviders } from './providers/http.providers';
 import { localProviders } from './providers/local.providers';
 import { readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
@@ -15,7 +14,7 @@ function App() {
   const [courtName, setCourtName] = useState('');
   const [verdictDate, setVerdictDate] = useState('');
   const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
-  const [providerMode, setProviderMode] = useState<'test' | 'local' | 'server'>('test');
+  const [providerMode, setProviderMode] = useState<'test' | 'local'>('test');
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +31,7 @@ function App() {
   }, []);
 
   const pipeline = useMemo(
-    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : providerMode === 'local' ? localProviders : httpProviders),
+    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : localProviders),
     [providerMode],
   );
 
@@ -83,7 +82,7 @@ function App() {
           <h1>LegalGuard AI</h1>
           <p>Инструмент анализа судебных материалов · контролируемый конвейер</p>
         </div>
-        <span className="badge">{providerMode === 'local' ? 'ЛОКАЛЬНЫЙ ИИ · БЕЗ API' : providerMode === 'server' ? 'ВНЕШНИЙ ИИ · НУЖНЫ КЛЮЧИ' : 'РЕЖИМ ПРОВЕРКИ ИНТЕРФЕЙСА'}</span>
+        <span className="badge">{providerMode === 'local' ? 'ЛОКАЛЬНЫЙ ИИ · БЕЗ API' : 'РЕЖИМ ПРОВЕРКИ ИНТЕРФЕЙСА'}</span>
       </header>
 
       <section className="panel metadata">
@@ -93,7 +92,7 @@ function App() {
           <label>Суд<input value={courtName} onChange={(event) => setCourtName(event.target.value)} placeholder="Наименование суда" /></label>
           <label>Дата акта<input value={verdictDate} onChange={(event) => setVerdictDate(event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
           <label>Вид жалобы<select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
-          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local' | 'server')}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option><option value="server">Внешний серверный ИИ (требует ключи)</option></select></label>
+          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local')}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option></select></label>
         </div>
       </section>
 
