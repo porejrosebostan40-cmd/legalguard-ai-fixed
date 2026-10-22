@@ -21,15 +21,24 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return payload as T;
 }
 
+function unwrapFindings(payload: unknown): unknown {
+  if (typeof payload === 'object' && payload !== null && 'findings' in payload) {
+    return (payload as { findings: unknown }).findings;
+  }
+  return payload;
+}
+
 export const httpProviders: AIProviderSet = {
   deepSeek: {
-    analyze(documentText: string): Promise<DeepSeekFinding[]> {
-      return postJson('/api/deepseek/analyze', { documentText });
+    async analyze(documentText: string): Promise<DeepSeekFinding[]> {
+      const result = await postJson<unknown>('/api/deepseek/analyze', { documentText });
+      return validateAnalystFindings(unwrapFindings(result));
     },
   },
   chatGPT: {
-    arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
-      return postJson('/api/chatgpt/arbitrate', { documentText, findings });
+    async arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
+      const result = await postJson<unknown>('/api/chatgpt/arbitrate', { documentText, findings });
+      return validateArbiterFindings(unwrapFindings(result));
     },
   },
 };
