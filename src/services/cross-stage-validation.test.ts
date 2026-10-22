@@ -30,6 +30,13 @@ describe('cross-stage candidate coverage', () => {
     expect(() => validateArbiterCoverage([candidate('F-1'), candidate('F-2')], [reviewed('F-1')])).toThrow('не вынес оценку');
   });
 
+  it('rejects an arbiter that silently changes the analyst quote', () => {
+    expect(() => validateArbiterCoverage(
+      [candidate('F-1')],
+      [{ ...reviewed('F-1'), sourceQuote: 'Другой фрагмент судебного акта.' }],
+    )).toThrow('изменил цитату-основание');
+  });
+
   it('accepts an empty set only when both stages return no findings', () => {
     expect(validateArbiterCoverage([], [])).toEqual([]);
     expect(() => validateArbiterCoverage([], [reviewed('F-1')])).toThrow('добавил основания');
