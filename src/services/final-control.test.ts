@@ -137,7 +137,7 @@ describe('runFinalControl', () => {
   it('blocks a finding marked as having no legal significance', () => {
     const result = runFinalControl(documentText, [acceptedFinding({ legalSignificance: 'none' })], [strategy()]);
     expect(result.passed).toBe(false);
-    expect(result.blockingReasons.some((reason) => reason.includes('не имеющим юридической значимости'))).toBe(true);
+    expect(result.blockingReasons.some((reason) => reason.includes('не имеющее юридической значимости'))).toBe(true);
   });
 
   it('blocks an unknown legal-significance value', () => {
