@@ -53,6 +53,37 @@ describe('LegalGuard draft generation', () => {
     expect(result.readyForSubmission).toBe(false);
   });
 
+  it('attributes a quotation to the unique uploaded source file', async () => {
+    const multiDocumentText = [
+      '=== НАЧАЛО ДОКУМЕНТА: decision.txt ===',
+      documentText,
+      '=== КОНЕЦ ДОКУМЕНТА: decision.txt ===',
+      '',
+      '=== НАЧАЛО ДОКУМЕНТА: appeal.txt ===',
+      'Заявитель просит проверить судебный вывод.',
+      '=== КОНЕЦ ДОКУМЕНТА: appeal.txt ===',
+    ].join('\n');
+    const result = await new LegalGuardPipeline(providers()).run(multiDocumentText, caseInfo);
+    expect(result.finalControl?.passed).toBe(true);
+    expect(result.arbiterFindings[0].source?.documentId).toBe('decision.txt');
+  });
+
+  it('blocks a draft when the same quotation cannot be attributed to one source file', async () => {
+    const multiDocumentText = [
+      '=== НАЧАЛО ДОКУМЕНТА: decision.txt ===',
+      documentText,
+      '=== КОНЕЦ ДОКУМЕНТА: decision.txt ===',
+      '',
+      '=== НАЧАЛО ДОКУМЕНТА: appeal.txt ===',
+      documentText,
+      '=== КОНЕЦ ДОКУМЕНТА: appeal.txt ===',
+    ].join('\n');
+    const result = await new LegalGuardPipeline(providers()).run(multiDocumentText, caseInfo);
+    expect(result.finalControl?.passed).toBe(false);
+    expect(result.finalControl?.blockingReasons.some((reason) => reason.includes('исходный файл цитаты'))).toBe(true);
+    expect(result.finalDocument).toBeNull();
+  });
+
   it('reports analysis and arbitration progress for each chunk', async () => {
     const progress: Array<{ currentChunk: number; totalChunks: number; stage: string }> = [];
     const result = await new LegalGuardPipeline(providers(), (event) => progress.push(event)).run(documentText, caseInfo);
