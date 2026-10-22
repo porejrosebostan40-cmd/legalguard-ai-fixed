@@ -47,6 +47,7 @@ export function isSourceReferenceGrounded(documentText: string, source: SourceRe
   if (!source || !source.documentId.trim() || !source.quote.trim()) return false;
   const normalizedQuote = normalize(source.quote);
   const sections = parseDocumentSections(documentText);
+  if (hasDocumentBoundaryMarkers(documentText) && sections.length === 0) return false;
 
   if (sections.length > 0) {
     const matches = sections.filter((section) => normalize(section.text).includes(normalizedQuote));
