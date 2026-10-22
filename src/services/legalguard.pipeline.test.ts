@@ -51,6 +51,11 @@ describe('LegalGuard draft generation', () => {
     expect(result.finalDocument).toContain('Предполагаемая правовая основа (НЕ ПРОВЕРЕНА): статья 401.15 УПК РФ');
     expect(result.finalDocument).toContain('https://publication.pravo.gov.ru/search');
     expect(result.finalDocument).toContain('https://pravo.minjust.ru/');
+    expect(result.finalDocument).toContain('В суд: Суд кассационной инстанции');
+    expect(result.finalDocument).toContain('Заявитель / осуждённый: Иванов Иван Иванович');
+    expect(result.finalDocument).toContain('ПРОСИТЕЛЬНАЯ ЧАСТЬ — НЕ СФОРМИРОВАНА');
+    expect(result.finalDocument).not.toContain('Проверить довод в пределах кассационной жалобы');
+    expect(result.finalDocument).toContain('Это не готовый процессуальный документ');
     expect(result.readyForSubmission).toBe(false);
   });
 
