@@ -27,7 +27,7 @@ button:disabled { opacity: .55; cursor: default; }
 .trace-row { display: grid; grid-template-columns: 24px 1fr; gap: 8px; align-items: start; padding: 9px; background: #0d0f13; border-radius: 7px; font-size: 13px; }
 .status { font-weight: 800; } .status.ok { color: #8bd49b; } .status.error { color: #ef8585; } .status.warning, .status.pending { color: #e1c27b; }
 .result { margin-top: 12px; border-radius: 8px; padding: 11px; font-weight: 700; text-align: center; }
-.result.pass { background: #15351e; color: #9be3a9; } .result.block { background: #3a1919; color: #f2a0a0; }
+.result.pass { background: #15351e; color: #9be3a9; } .result.draft { background: #3a3019; color: #e1c27b; } .result.block { background: #3a1919; color: #f2a0a0; }
 .findings, .control-details, .document-preview { margin-top: 16px; }
 .finding { display: grid; grid-template-columns: 125px 1fr; gap: 12px; padding: 13px 0; border-top: 1px solid #292e36; }
 .finding-status { font-size: 11px; text-transform: uppercase; font-weight: 800; }
