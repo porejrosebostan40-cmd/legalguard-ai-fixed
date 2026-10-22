@@ -207,6 +207,7 @@ function App() {
               <span className={`finding-status ${finding.status}`}>{finding.status === 'accepted' ? 'принято' : finding.status === 'rejected' ? 'отклонено' : 'требует проверки'}</span>
               <div>
                 <strong>{finding.id}: {finding.claim}</strong>
+                <p className="finding-quote"><strong>Цитата из материала:</strong> {finding.sourceQuote ? `«${finding.sourceQuote}»` : 'Не указана — основание нельзя подтвердить по цитате.'}</p>
                 <p>{finding.reasoning}</p>
                 {finding.legalBasis && finding.legalBasis.length > 0 && (
                   <div className="finding-basis">
