@@ -74,3 +74,14 @@ export async function readTextDocument(file: File): Promise<DocumentInput> {
   if (!text) throw new Error('Файл не содержит текста.');
   return { name: file.name, text, mimeType };
 }
+
+/**
+ * Combines separately extracted case materials while preserving explicit boundaries
+ * so quotes can be traced back to the file they came from.
+ */
+export function combineDocuments(documents: DocumentInput[]): string {
+  return documents.map((document) => {
+    const safeName = document.name.replace(/[\r\n]+/g, ' ').trim() || 'Документ без имени';
+    return `=== НАЧАЛО ДОКУМЕНТА: ${safeName} ===\n${document.text}\n=== КОНЕЦ ДОКУМЕНТА: ${safeName} ===`;
+  }).join('\n\n');
+}
