@@ -7,6 +7,7 @@ export interface CaseInfo {
   courtName: string;
   verdictDate: string;
   clientName: string;
+  recipientCourtName: string;
   complaintType: ComplaintType;
 }
 
