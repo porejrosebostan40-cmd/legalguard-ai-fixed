@@ -5,10 +5,12 @@ import { runFinalControl } from './final-control';
 const documentText = 'Суд установил, что осуждённый прибыл в суд 12 марта.';
 
 function acceptedFinding(overrides: Partial<ArbiterFinding> = {}): ArbiterFinding {
+  const defaultQuote = 'Суд установил, что осуждённый прибыл в суд 12 марта.';
   return {
     id: 'F-1',
     claim: 'Судебный вывод требует проверки',
-    sourceQuote: 'Суд установил, что осуждённый прибыл в суд 12 марта.',
+    sourceQuote: defaultQuote,
+    source: { documentId: 'Исходный материал', quote: overrides.sourceQuote ?? defaultQuote },
     legalBasis: ['статья 401.15 УПК РФ'],
     confidence: 0.8,
     status: 'accepted',
@@ -40,6 +42,24 @@ describe('runFinalControl', () => {
     const result = runFinalControl(documentText, [acceptedFinding({ sourceQuote: 'Цитата, которой нет в документе.' })], [strategy()]);
     expect(result.passed).toBe(false);
     expect(result.blockingReasons.some((reason) => reason.includes('Цитата основания F-1 не найдена'))).toBe(true);
+  });
+
+  it('blocks an accepted finding with a quote too short to ground the claim', () => {
+    const quote = 'Суд постановил';
+    const result = runFinalControl(documentText, [acceptedFinding({
+      sourceQuote: quote,
+      source: { documentId: 'Исходный материал', quote },
+    })], [strategy()]);
+    expect(result.passed).toBe(false);
+    expect(result.blockingReasons.some((reason) => reason.includes('слишком короткая'))).toBe(true);
+  });
+
+  it('blocks an accepted finding without structured source attribution', () => {
+    const finding = acceptedFinding();
+    delete finding.source;
+    const result = runFinalControl(documentText, [finding], [strategy()]);
+    expect(result.passed).toBe(false);
+    expect(result.blockingReasons.some((reason) => reason.includes('отсутствует структурированная ссылка'))).toBe(true);
   });
 
   it('blocks an accepted finding without a legal-basis lead', () => {
