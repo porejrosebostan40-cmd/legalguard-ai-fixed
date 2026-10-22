@@ -1,8 +1,7 @@
-import { StrictMode, useEffect, useMemo, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
-import { localProviders } from './providers/local.providers';
 import { readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
@@ -30,11 +29,6 @@ function App() {
     return () => window.removeEventListener('legalguard:model-progress', handleProgress);
   }, []);
 
-  const pipeline = useMemo(
-    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : localProviders),
-    [providerMode],
-  );
-
   async function loadFile(file: File | undefined) {
     if (!file) return;
     setError(null);
@@ -53,6 +47,10 @@ function App() {
     setError(null);
     setCopied(false);
     try {
+      const providers = providerMode === 'test'
+        ? mockProviders
+        : (await import('./providers/local.providers')).localProviders;
+      const pipeline = new LegalGuardPipeline(providers);
       const next = await pipeline.run(text, {
         caseNumber: caseNumber || '—',
         courtName: courtName || '—',
