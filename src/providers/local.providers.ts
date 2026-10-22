@@ -147,7 +147,10 @@ export function createLocalProviders(endpoint: string, modelName = 'local-model'
               throw new Error(`Локальный аналитик вернул некорректную находку №${findingIndex + 1} во фрагменте ${chunkIndex + 1}.`);
             }
 
-            const quoteIndex = documentText.indexOf(item.sourceQuote);
+            const firstQuoteIndex = documentText.indexOf(item.sourceQuote);
+            const quoteIndex = firstQuoteIndex >= 0 && documentText.indexOf(item.sourceQuote, firstQuoteIndex + 1) === -1
+              ? firstQuoteIndex
+              : -1;
             const sourceLineStart = quoteIndex >= 0
               ? documentText.slice(0, quoteIndex).split('\n').length
               : undefined;
