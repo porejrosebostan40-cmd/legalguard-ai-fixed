@@ -100,7 +100,7 @@ function App() {
           {providerMode === 'test' && <p className="control-warning">Тестовый режим не выполняет юридический анализ и не создаёт вымышленные основания.</p>}
           {providerMode === 'local' && <p className="control-warning">Локальная модель работает на устройстве при наличии WebGPU. При первом запуске потребуется загрузка модели примерно на 1–2 ГБ. Текст дела не отправляется в AI API. На неподдерживаемых устройствах анализ не запустится.</p>}
           <div className="upload-row">
-            <label className="file-button">Загрузить TXT<input type="file" accept=".txt,text/plain" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
+            <label className="file-button">Загрузить документ<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
           </div>
           <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
