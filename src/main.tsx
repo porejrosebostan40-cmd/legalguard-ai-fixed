@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
 import { httpProviders } from './providers/http.providers';
+import { localProviders } from './providers/local.providers';
 import { readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
@@ -14,14 +15,14 @@ function App() {
   const [courtName, setCourtName] = useState('');
   const [verdictDate, setVerdictDate] = useState('');
   const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
-  const [providerMode, setProviderMode] = useState<'test' | 'server'>('test');
+  const [providerMode, setProviderMode] = useState<'test' | 'local' | 'server'>('test');
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const pipeline = useMemo(
-    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : httpProviders),
+    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : providerMode === 'local' ? localProviders : httpProviders),
     [providerMode],
   );
 
@@ -72,7 +73,7 @@ function App() {
           <h1>LegalGuard AI</h1>
           <p>Инструмент анализа судебных материалов · контролируемый конвейер</p>
         </div>
-        <span className="badge">MVP · БЕЗ ОБЯЗАТЕЛЬНЫХ API</span>
+        <span className="badge">ЛОКАЛЬНЫЙ РЕЖИМ · БЕЗ API</span>
       </header>
 
       <section className="panel metadata">
@@ -82,14 +83,15 @@ function App() {
           <label>Суд<input value={courtName} onChange={(event) => setCourtName(event.target.value)} placeholder="Наименование суда" /></label>
           <label>Дата акта<input value={verdictDate} onChange={(event) => setVerdictDate(event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
           <label>Вид жалобы<select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
-          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'server')}><option value="test">Тестовый прогон</option><option value="server">Серверный провайдер</option></select></label>
+          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'server')}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option><option value="server">Внешний серверный ИИ (требует ключи)</option></select></label>
         </div>
       </section>
 
       <section className="grid">
         <article className="panel">
           <h2>Судебный материал</h2>
-          {providerMode === 'test' && <p className="control-warning">Тестовый режим не выполняет юридический анализ и не создаёт вымышленные основания. Для настоящего анализа нужен подключённый и проверенный провайдер.</p>}
+          {providerMode === 'test' && <p className="control-warning">Тестовый режим не выполняет юридический анализ и не создаёт вымышленные основания.</p>}
+          {providerMode === 'local' && <p className="control-warning">Локальная модель работает на устройстве при наличии WebGPU. При первом запуске потребуется загрузка модели примерно на 1–2 ГБ. Текст дела не отправляется в AI API. На неподдерживаемых устройствах анализ не запустится.</p>}
           <div className="upload-row">
             <label className="file-button">Загрузить TXT<input type="file" accept=".txt,text/plain" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
