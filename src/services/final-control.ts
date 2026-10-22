@@ -147,6 +147,15 @@ export function runFinalControl(
     if (typeof argument.argument !== 'string' || !argument.argument.trim()) {
       blockingReasons.push(`У довода по основанию ${argument.findingId} отсутствует текст аргумента.`);
     }
+
+    const linkedFinding = findings.find((finding) => finding.id === argument.findingId && finding.status === 'accepted');
+    if (linkedFinding?.source && (
+      !argument.source
+      || argument.source.documentId !== linkedFinding.source.documentId
+      || normalizeForComparison(argument.source.quote) !== normalizeForComparison(linkedFinding.source.quote)
+    )) {
+      blockingReasons.push(`Источник цитаты в стратегии по основанию ${argument.findingId} не совпадает с проверенным основанием.`);
+    }
   }
 
   for (const finding of findings) {
