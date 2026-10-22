@@ -29,7 +29,7 @@ MVP для контролируемого анализа судебных акт
 
 ## Локальная модель на Android
 
-Инструкция по запуску локального inference-сервера через Termux: [docs/local-model-android.md](docs/local-model-android.md). Скрипт запуска llama.cpp: `scripts/run-local-llama-server.sh`. Сам движок и файл модели не входят в репозиторий.
+Инструкция по запуску на Android через Termux: [docs/local-model-android.md](docs/local-model-android.md). После сборки llama.cpp и размещения GGUF-модели `scripts/start-legalguard-android.sh` запускает модель и интерфейс вместе. Сам движок и файл модели не входят в репозиторий.
 
 ## Локальная разработка
 
