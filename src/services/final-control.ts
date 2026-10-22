@@ -6,7 +6,7 @@ import type {
 } from '../core/legalguard.types';
 
 function normalizeForQuoteMatch(value: string): string {
-  return value.replace(/\\s+/g, ' ').trim();
+  return value.replace(/\s+/g, ' ').trim();
 }
 
 export function runFinalControl(
