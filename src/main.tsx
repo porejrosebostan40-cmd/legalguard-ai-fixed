@@ -5,7 +5,7 @@ import { mockProviders } from './providers/mock.providers';
 import { combineDocuments, readTextDocument, validateDocumentBatch } from './services/document-ingestion';
 import { DOCUMENT_ROLE_LABELS, type DocumentInput, type DocumentRole } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
-import { areAllAcceptedFindingsReviewed } from './services/manual-review';
+import { areAllFindingsReviewed } from './services/manual-review';
 import { validateCaseInfo } from './services/case-info-validation';
 import './styles.css';
 
@@ -28,8 +28,8 @@ function App() {
   const [analysisProgress, setAnalysisProgress] = useState<string | null>(null);
   const [diagnosticMessage, setDiagnosticMessage] = useState<string | null>(null);
   const [manuallyReviewedFindingIds, setManuallyReviewedFindingIds] = useState<string[]>([]);
-  const acceptedFindingIds = result?.arbiterFindings.filter((finding) => finding.status === 'accepted').map((finding) => finding.id) ?? [];
-  const allAcceptedFindingsReviewed = areAllAcceptedFindingsReviewed(result?.arbiterFindings ?? [], manuallyReviewedFindingIds);
+  const allFindingIds = result?.arbiterFindings.map((finding) => finding.id) ?? [];
+  const allFindingsReviewed = areAllFindingsReviewed(result?.arbiterFindings ?? [], manuallyReviewedFindingIds);
 
   useEffect(() => {
     const handleProgress = (event: Event) => {
@@ -150,7 +150,7 @@ function App() {
   }
 
   function downloadDocument() {
-    if (!result?.finalDocument || !allAcceptedFindingsReviewed || !result.finalControl?.passed) return;
+    if (!result?.finalDocument || !allFindingsReviewed || !result.finalControl?.passed) return;
     try {
       const blob = new Blob([result.finalDocument], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -168,7 +168,7 @@ function App() {
   }
 
   async function copyDocument() {
-    if (!result?.finalDocument || !allAcceptedFindingsReviewed || !result.finalControl?.passed) return;
+    if (!result?.finalDocument || !allFindingsReviewed || !result.finalControl?.passed) return;
     try {
       await navigator.clipboard.writeText(result.finalDocument);
       setCopied(true);
@@ -249,9 +249,9 @@ function App() {
               </div>
               <div className={result.readyForSubmission ? 'result pass' : 'result block'}>
                 {result.finalControl?.passed
-                  ? allAcceptedFindingsReviewed
-                    ? 'ФОРМАЛЬНЫЕ ПРОВЕРКИ И РУЧНЫЕ ОТМЕТКИ ЕСТЬ — ПРОЕКТ ВСЁ РАВНО НЕ ГОТОВ К ПОДАЧЕ'
-                    : 'ФОРМАЛЬНЫЕ ПРОВЕРКИ ПРОЙДЕНЫ — ОЖИДАЕТСЯ РУЧНАЯ ПРОВЕРКА ДОВОДОВ'
+                  ? allFindingsReviewed
+                    ? 'ВСЕ КАНДИДАТЫ ПРОСМОТРЕНЫ — ПРОЕКТ ВСЁ РАВНО НЕ ГОТОВ К ПОДАЧЕ'
+                    : 'ФОРМАЛЬНЫЕ ПРОВЕРКИ ПРОЙДЕНЫ — ОЖИДАЕТСЯ ПРОСМОТР ВСЕХ КАНДИДАТОВ'
                   : 'НЕДОСТАТОЧНО ДАННЫХ / КОНТРОЛЬ НЕ ПРОЙДЕН'}
               </div>
             </>
@@ -277,7 +277,14 @@ function App() {
                     <a href="https://publication.pravo.gov.ru/search" target="_blank" rel="noreferrer">Проверить в официальных публикациях</a>
                   </div>
                 )}
-                {finding.status === 'accepted' && <label className="manual-review"><input type="checkbox" disabled={running} checked={manuallyReviewedFindingIds.includes(finding.id)} onChange={(event) => { setManuallyReviewedFindingIds((current) => event.target.checked ? [...new Set([...current, finding.id])] : current.filter((id) => id !== finding.id)); setCopied(false); }} />Я вручную сверил цитату с файлом-источником, проверил правовую норму и её редакцию на нужную дату и оценил применимость довода.</label>}
+                <label className="manual-review">
+                  <input type="checkbox" disabled={running} checked={manuallyReviewedFindingIds.includes(finding.id)} onChange={(event) => { setManuallyReviewedFindingIds((current) => event.target.checked ? [...new Set([...current, finding.id])] : current.filter((id) => id !== finding.id)); setCopied(false); }} />
+                  {finding.status === 'accepted'
+                    ? 'Я вручную сверил цитату с файлом-источником, проверил правовую норму и её редакцию на нужную дату и оценил применимость довода.'
+                    : finding.status === 'rejected'
+                      ? 'Я просмотрел отклонённый кандидата и согласен исключить его из проекта.'
+                      : 'Я просмотрел неразрешённый кандидат и решил не включать его в этот проект.'}
+                </label>
               </div>
             </div>
           ))}
@@ -292,9 +299,9 @@ function App() {
         </section>
       )}
 
-      {result?.finalDocument && result.finalControl?.passed && !allAcceptedFindingsReviewed && <section className="panel control-details"><h2>Проект пока скрыт</h2><p>Сверьте каждый принятый довод и отметьте его вручную. Это не заменяет профессиональную юридическую проверку и не делает документ готовым к подаче.</p><p>Проверено вручную: {manuallyReviewedFindingIds.filter((id) => acceptedFindingIds.includes(id)).length} из {acceptedFindingIds.length} доводов.</p></section>}
+      {result?.finalDocument && result.finalControl?.passed && !allFindingsReviewed && <section className="panel control-details"><h2>Проект пока скрыт</h2><p>Просмотрите каждый кандидат. Для принятого довода сверяйте цитату и норму; для отклонённого или неразрешённого подтвердите, что сознательно исключаете его из этого проекта. Это не заменяет профессиональную юридическую проверку.</p><p>Просмотрено: {manuallyReviewedFindingIds.filter((id) => allFindingIds.includes(id)).length} из {allFindingIds.length} кандидатов.</p></section>}
 
-      {result?.finalDocument && result.finalControl?.passed && allAcceptedFindingsReviewed && (
+      {result?.finalDocument && result.finalControl?.passed && allFindingsReviewed && (
         <section className="panel document-preview">
           <div className="document-heading">
             <h2>Сформированный документ</h2>
