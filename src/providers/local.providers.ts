@@ -109,7 +109,7 @@ export function createLocalProviders(endpoint: string, modelName = 'local-model'
   const url = endpoint.trim();
 
   return {
-    deepSeek: {
+    analyst: {
       async analyze(documentText: string): Promise<DeepSeekFinding[]> {
         const chunks = splitDocumentIntoChunks(documentText);
         const allFindings: DeepSeekFinding[] = [];
@@ -160,7 +160,7 @@ export function createLocalProviders(endpoint: string, modelName = 'local-model'
         return allFindings;
       },
     },
-    chatGPT: {
+    arbiter: {
       async arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
         const result = await completeJson<{ decisions?: unknown }>(
           url,
