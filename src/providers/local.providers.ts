@@ -149,10 +149,10 @@ export function createLocalProviders(endpoint: string, modelName = 'local-model'
 
             const quoteIndex = documentText.indexOf(item.sourceQuote);
             const sourceLineStart = quoteIndex >= 0
-              ? documentText.slice(0, quoteIndex).split('\\n').length
+              ? documentText.slice(0, quoteIndex).split('\n').length
               : undefined;
             const sourceLineEnd = sourceLineStart !== undefined
-              ? sourceLineStart + item.sourceQuote.split('\\n').length - 1
+              ? sourceLineStart + item.sourceQuote.split('\n').length - 1
               : undefined;
 
             allFindings.push({
