@@ -129,6 +129,6 @@ export class LegalGuardPipeline {
       return `${item.position}. ${item.heading}\n${item.argument}${basis}${relief}`;
     }).join('\n\n');
 
-    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nПРОЕКТ СФОРМИРОВАН LegalGuard AI. Перед использованием необходимо проверить факты, правовые ссылки, процессуальные требования и сроки; автоматический контроль не подтверждает готовность к подаче.`;
+    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nИСТОЧНИКИ ДЛЯ РУЧНОЙ ПРОВЕРКИ ПРАВОВЫХ ССЫЛОК\nОфициальный интернет-портал правовой информации: https://pravo.gov.ru/\nПоиск официального опубликования: https://publication.pravo.gov.ru/search\nПортал Минюста России «Нормативные правовые акты в Российской Федерации»: https://pravo.minjust.ru/\n\nПРОЕКТ СФОРМИРОВАН LegalGuard AI. Перед использованием необходимо проверить факты, правовые ссылки, редакции норм на юридически значимую дату, процессуальные требования и сроки; автоматический контроль не подтверждает готовность к подаче.`;
   }
 }
