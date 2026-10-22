@@ -28,7 +28,21 @@ function parseJsonObject<T>(content: string): T {
   }
 }
 
+function validateLoopbackEndpoint(endpoint: string): void {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(endpoint);
+  } catch {
+    throw new Error('Адрес локальной модели должен быть корректным URL.');
+  }
+  if (!['http:', 'https:'].includes(parsedUrl.protocol) || !['localhost', '127.0.0.1', '[::1]'].includes(parsedUrl.hostname)) {
+    throw new Error('Локальный режим разрешает только localhost, 127.0.0.1 или ::1. Удалённые адреса запрещены.');
+  }
+}
+
 async function completeJson<T>(endpoint: string, modelName: string, system: string, user: string): Promise<T> {
+  validateLoopbackEndpoint(endpoint);
+  if (!modelName.trim()) throw new Error('Укажите имя локальной модели.');
   let response: Response;
   try {
     response = await fetch(endpoint, {
@@ -70,17 +84,6 @@ function isStringArray(value: unknown): value is string[] {
 
 export function createLocalProviders(endpoint: string, modelName = 'local-model'): AIProviderSet {
   const url = endpoint.trim();
-  if (!url) throw new Error('Укажите адрес локального сервера модели.');
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(url);
-  } catch {
-    throw new Error('Адрес локальной модели должен быть корректным URL.');
-  }
-  if (!['http:', 'https:'].includes(parsedUrl.protocol) || !['localhost', '127.0.0.1', '[::1]'].includes(parsedUrl.hostname)) {
-    throw new Error('Локальный режим разрешает только localhost, 127.0.0.1 или ::1. Удалённые адреса запрещены.');
-  }
-  if (!modelName.trim()) throw new Error('Укажите имя локальной модели.');
 
   return {
     deepSeek: {
