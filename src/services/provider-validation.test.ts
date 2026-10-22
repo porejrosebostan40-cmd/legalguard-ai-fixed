@@ -53,6 +53,15 @@ describe('AI provider output validation', () => {
     expect(() => validateCriticReviews([{ id: 'F-1', status: 'approve', critique: 'OK' }])).toThrow('неизвестный статус');
   });
 
+  it('rejects excessive findings per chunk rather than overflowing the model context', () => {
+    const manyAnalyst = Array.from({ length: 9 }, (_, index) => ({ ...analystFinding, id: `F-${index + 1}` }));
+    const manyArbiter = Array.from({ length: 9 }, (_, index) => ({ ...arbiterFinding, id: `F-${index + 1}` }));
+    const manyReviews = Array.from({ length: 9 }, (_, index) => ({ id: `F-${index + 1}`, status: 'clear', critique: 'Проверено.' }));
+    expect(() => validateAnalystFindings(manyAnalyst)).toThrow('более 8 оснований');
+    expect(() => validateArbiterFindings(manyArbiter)).toThrow('более 8 оснований');
+    expect(() => validateCriticReviews(manyReviews)).toThrow('более 8 проверок');
+  });
+
   it('rejects duplicate critic reviews', () => {
     const review = { id: 'F-1', status: 'clear', critique: 'Проверка пройдена.' };
     expect(() => validateCriticReviews([review, review])).toThrow('повторяющаяся проверка ID');
