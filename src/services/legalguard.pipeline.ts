@@ -42,7 +42,6 @@ export class LegalGuardPipeline {
       position: index + 1,
       heading: finding.claim,
       argument: finding.reasoning,
-      requestedRelief: `Проверить довод в пределах ${caseInfo.complaintType} жалобы.`,
       sourceQuote: finding.source?.quote || finding.sourceQuote,
       sourceLineStart: finding.source?.startLine,
       sourceLineEnd: finding.source?.endLine,
@@ -84,8 +83,8 @@ export class LegalGuardPipeline {
 
   private renderDocument(caseInfo: CaseInfo, strategy: StrategyArgument[]): string {
     const title = caseInfo.complaintType === 'апелляционная'
-      ? 'АПЕЛЛЯЦИОННАЯ ЖАЛОБА'
-      : 'КАССАЦИОННАЯ ЖАЛОБА';
+      ? 'ЧЕРНОВИК ДОВОДОВ К АПЕЛЛЯЦИОННОЙ ЖАЛОБЕ'
+      : 'ЧЕРНОВИК ДОВОДОВ К КАССАЦИОННОЙ ЖАЛОБЕ';
     const body = strategy.map((item) => {
       const quote = item.sourceQuote ? `\nПодтверждающая цитата: «${item.sourceQuote}»` : '\nПодтверждающая цитата: отсутствует — довод требует проверки.';
       const lineRange = item.sourceLineStart !== undefined
@@ -95,6 +94,6 @@ export class LegalGuardPipeline {
       return `${item.position}. ${item.heading}\n${item.argument}${quote}${lineRange}${relief}`;
     }).join('\n\n');
 
-    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nЧЕРНОВИК LegalGuard AI. Автоматический контроль не подтверждает юридическую точность или готовность к подаче. Проверьте факты, цитаты, нормы права, сроки и процессуальную форму.`;
+    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nПРОСИТЕЛЬНАЯ ЧАСТЬ\n\n[Сформулировать отдельно с учетом обстоятельств дела, вида жалобы и полномочий суда.]\n\nПРИЛОЖЕНИЯ\n\n[Указать документы, подтверждающие доводы и соблюдение процессуальных требований.]\n\nЭто черновик раздела доводов, а не готовая к подаче жалоба. Автоматический контроль не подтверждает юридическую точность. Проверьте факты, цитаты, нормы права, сроки и процессуальную форму.`
   }
 }
