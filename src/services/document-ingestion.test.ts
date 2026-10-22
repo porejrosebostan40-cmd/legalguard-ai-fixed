@@ -32,13 +32,19 @@ describe('document ingestion', () => {
     pdfMock.empty = false;
     const wordNamespace = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     const textNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'Текст из DOCX', children: [] };
+    const secondTextNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'часть', children: [] };
+    const finalTextNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'Вторая строка', children: [] };
     const runNode = { namespaceURI: wordNamespace, localName: 'r', children: [textNode] };
-    const paragraphNode = { namespaceURI: wordNamespace, localName: 'p', children: [runNode] };
+    const secondRunNode = { namespaceURI: wordNamespace, localName: 'r', children: [finalTextNode] };
+    const tabNode = { namespaceURI: wordNamespace, localName: 'tab', children: [] };
+    const breakNode = { namespaceURI: wordNamespace, localName: 'br', children: [] };
+    const firstParagraph = { namespaceURI: wordNamespace, localName: 'p', children: [runNode, tabNode, secondTextNode, breakNode] };
+    const secondParagraph = { namespaceURI: wordNamespace, localName: 'p', children: [secondRunNode] };
     vi.stubGlobal('DOMParser', class {
       parseFromString() {
         return {
           getElementsByTagName: () => [],
-          getElementsByTagNameNS: (_namespace: string, localName: string) => localName === 'p' ? [paragraphNode] : [],
+          getElementsByTagNameNS: (_namespace: string, localName: string) => localName === 'p' ? [firstParagraph, secondParagraph] : [],
         };
       }
     });
@@ -81,7 +87,7 @@ describe('document ingestion', () => {
     });
     const result = await readTextDocument(file);
     expect(result.mimeType).toContain('wordprocessingml.document');
-    expect(result.text).toBe('Текст из DOCX');
+    expect(result.text).toBe('Текст из DOCX\tчасть\nВторая строка');
   });
 
   it('combines multiple files with explicit, sanitized document boundaries', () => {
