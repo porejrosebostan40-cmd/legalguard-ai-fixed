@@ -59,8 +59,9 @@ function App() {
       const loadedDocuments: DocumentInput[] = [];
       // Sequential parsing avoids loading several large PDF workers into memory at once.
       for (const file of files) loadedDocuments.push(await readTextDocument(file));
+      const combinedText = combineDocuments(loadedDocuments);
       setDocuments(loadedDocuments);
-      setText(combineDocuments(loadedDocuments));
+      setText(combinedText);
       setFileName(loadedDocuments.map((document) => document.name).join(', '));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Не удалось прочитать документы.');
@@ -71,9 +72,15 @@ function App() {
     const updated = documents.map((document, currentIndex) =>
       currentIndex === index ? { ...document, role } : document,
     );
-    setDocuments(updated);
-    setText(combineDocuments(updated));
-    invalidateResult();
+    try {
+      const combinedText = combineDocuments(updated);
+      setDocuments(updated);
+      setText(combinedText);
+      setError(null);
+      invalidateResult();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Не удалось обновить метки документов.');
+    }
   }
 
   async function run() {
