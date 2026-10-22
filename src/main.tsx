@@ -106,7 +106,7 @@ function App() {
         <article className="panel">
           <h2>Судебный материал</h2>
           <div className="upload-row">
-            <label className="file-button">Загрузить TXT<input type="file" accept=".txt,text/plain" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
+            <label className="file-button">Загрузить TXT / PDF / DOCX<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
           </div>
           <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
