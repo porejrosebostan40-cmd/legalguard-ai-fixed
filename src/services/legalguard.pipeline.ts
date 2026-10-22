@@ -31,10 +31,10 @@ export class LegalGuardPipeline {
     pipelineTrace.push(trace('01 ДОКУМЕНТЫ OK', 'documents', 'ok', 'Материал принят.'));
 
     const findings = await this.providers.deepSeek.analyze(documentText);
-    pipelineTrace.push(trace('02 АНАЛИТИК OK', 'analyst', 'ok', `DeepSeek выявил оснований: ${findings.length}.`));
+    pipelineTrace.push(trace('02 АНАЛИТИК OK', 'analyst', 'ok', `Первичный анализ сформировал оснований: ${findings.length}.`));
 
     const arbiterFindings = await this.providers.chatGPT.arbitrate(documentText, findings);
-    pipelineTrace.push(trace('03 АРБИТР OK', 'arbiter', 'ok', 'ChatGPT выполнил юридическую оценку каждого основания.'));
+    pipelineTrace.push(trace('03 АРБИТР OK', 'arbiter', 'ok', 'Арбитр обработал результаты первичного анализа.'));
 
     const accepted = arbiterFindings.filter((finding) => finding.status === 'accepted');
     const strategy: StrategyArgument[] = accepted.map((finding, index) => ({
@@ -46,12 +46,12 @@ export class LegalGuardPipeline {
     }));
     pipelineTrace.push(trace('04 СТРАТЕГИЯ OK', 'strategist', 'ok', `В стратегию принято оснований: ${strategy.length}.`));
 
-    const finalControl = runFinalControl(arbiterFindings, strategy);
+    const finalControl = runFinalControl(documentText, findings, arbiterFindings, strategy);
     pipelineTrace.push(trace(
       '05 ФИНАЛЬНЫЙ КОНТРОЛЬ',
       'final-control',
       finalControl.passed ? 'ok' : 'error',
-      finalControl.passed ? 'Финальный контроль пройден.' : `Подача заблокирована: ${finalControl.blockingReasons.join(' ')}`,
+      finalControl.passed ? 'Структурные проверки пройдены; требуется юридическая проверка.' : `Контроль заблокировал результат: ${finalControl.blockingReasons.join(' ')}`,
     ));
 
     return {
