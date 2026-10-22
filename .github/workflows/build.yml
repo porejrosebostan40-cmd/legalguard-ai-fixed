@@ -14,7 +14,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Обновить npm до версии с исправлением resolver
+        run: npm install --global npm@11.6.0
       - name: Установка зависимостей
-        run: npm install
+        run: npm install --no-audit --no-fund
       - name: Проверка TypeScript и сборка интерфейса
         run: npm run build
