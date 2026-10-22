@@ -99,6 +99,10 @@ export function runFinalControl(
     warnings.push('Наличие цитаты и правовой ссылки в материалах не подтверждает правильность толкования нормы и её редакцию на нужную дату.');
   }
 
+  if (findings.some((finding) => finding.status === 'accepted')) {
+    warnings.push('Наличие цитаты и правовой ссылки в материалах не подтверждает правильность толкования нормы и её редакцию на нужную дату.');
+  }
+
   return {
     passed: blockingReasons.length === 0,
     blockingReasons,
