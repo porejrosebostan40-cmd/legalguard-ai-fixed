@@ -75,7 +75,7 @@ async function completeJson<T>(endpoint: string, modelName: string, system: stri
 }
 
 
-export async function checkLocalModelConnection(endpoint: string): Promise<string> {
+export async function checkLocalModelConnection(endpoint: string, expectedModel = 'local-model'): Promise<string> {
   validateLoopbackEndpoint(endpoint);
   const modelsUrl = new URL(endpoint);
   modelsUrl.pathname = '/v1/models';
@@ -104,7 +104,14 @@ export async function checkLocalModelConnection(endpoint: string): Promise<strin
     throw new Error('Сервер доступен, но его ответ не похож на OpenAI-совместимый список моделей.');
   }
 
-  return `Соединение установлено. Сервер сообщает моделей: ${payload.data.length}.`;
+  const modelIds = payload.data
+    .filter((item): item is Record<string, unknown> => isRecord(item))
+    .map((item) => item.id)
+    .filter((id): id is string => typeof id === 'string');
+  if (expectedModel.trim() && modelIds.length > 0 && !modelIds.includes(expectedModel.trim())) {
+    throw new Error(`Сервер доступен, но модель «${expectedModel}» не найдена в списке. Доступные имена: ${modelIds.join(', ')}.`);
+  }
+  return `Соединение установлено. Модель «${expectedModel}» обнаружена; моделей на сервере: ${payload.data.length}.`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
