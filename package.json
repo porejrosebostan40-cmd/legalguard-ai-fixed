@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc && vite build",
     "dev": "vite",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -19,5 +20,7 @@
     "pdfjs-dist": "^4.10.38",
     "mammoth": "^1.9.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
 }
