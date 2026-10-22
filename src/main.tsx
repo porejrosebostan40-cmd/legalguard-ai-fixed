@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
 import { httpProviders } from './providers/http.providers';
+import { createLocalProviders } from './providers/local.providers';
 import { readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
@@ -14,15 +15,22 @@ function App() {
   const [courtName, setCourtName] = useState('');
   const [verdictDate, setVerdictDate] = useState('');
   const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
-  const [providerMode, setProviderMode] = useState<'test' | 'server'>('test');
+  const [providerMode, setProviderMode] = useState<'test' | 'server' | 'local'>('test');
+  const [localEndpoint, setLocalEndpoint] = useState('http://127.0.0.1:8080/v1/chat/completions');
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const pipeline = useMemo(
-    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : httpProviders),
-    [providerMode],
+    () => new LegalGuardPipeline(
+      providerMode === 'test'
+        ? mockProviders
+        : providerMode === 'local'
+          ? createLocalProviders(localEndpoint)
+          : httpProviders,
+    ),
+    [providerMode, localEndpoint],
   );
 
   async function loadFile(file: File | undefined) {
@@ -82,8 +90,14 @@ function App() {
           <label>Суд<input value={courtName} onChange={(event) => setCourtName(event.target.value)} placeholder="Наименование суда" /></label>
           <label>Дата акта<input value={verdictDate} onChange={(event) => setVerdictDate(event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
           <label>Вид жалобы<select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
-          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'server')}><option value="test">Тестовый прогон</option><option value="server">Серверный провайдер</option></select></label>
+          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'server' | 'local')}><option value="test">Демонстрационный тест</option><option value="local">Локальная модель</option><option value="server">Внешний сервер</option></select></label>
         </div>
+        {providerMode === 'local' && (
+          <label className="local-endpoint">Адрес локального OpenAI-совместимого сервера
+            <input value={localEndpoint} onChange={(event) => setLocalEndpoint(event.target.value)} placeholder="http://127.0.0.1:8080/v1/chat/completions" />
+            <span className="muted">Модель должна работать локально. Этот режим не обращается к облачным API; сервер должен разрешать запросы браузера (CORS).</span>
+          </label>
+        )}
       </section>
 
       <section className="grid">
