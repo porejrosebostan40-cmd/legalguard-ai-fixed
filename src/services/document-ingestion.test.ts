@@ -138,6 +138,15 @@ describe('document ingestion', () => {
     expect(() => combineDocuments([{ name: 'large.txt', text: 'x'.repeat(84_000), mimeType: 'text/plain' }])).toThrow('84 000 символов');
   });
 
+  it('disambiguates duplicate filenames in the source labels', () => {
+    const combined = combineDocuments([
+      { name: 'decision.pdf', text: 'Первый акт.', mimeType: 'application/pdf' },
+      { name: 'decision.pdf', text: 'Второй акт.', mimeType: 'application/pdf' },
+    ]);
+    expect(combined).toContain('decision.pdf [файл 1]');
+    expect(combined).toContain('decision.pdf [файл 2]');
+  });
+
   it('limits the number of uploaded documents', () => {
     const files = Array.from({ length: MAX_BATCH_FILES + 1 }, (_, index) => ({ name: `file-${index}.txt`, size: 1 }));
     expect(() => validateDocumentBatch(files)).toThrow('не более 10 документов');
