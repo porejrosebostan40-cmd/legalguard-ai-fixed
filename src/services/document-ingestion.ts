@@ -78,13 +78,13 @@ async function readDocx(file: File): Promise<string> {
     for (const child of Array.from(node.children)) {
       if (child.namespaceURI !== wordNamespace) continue;
       if (child.localName === 't') value += child.textContent ?? '';
-      else if (child.localName === 'tab') value += '\\t';
-      else if (child.localName === 'br' || child.localName === 'cr') value += '\\n';
+      else if (child.localName === 'tab') value += '\t';
+      else if (child.localName === 'br' || child.localName === 'cr') value += '\n';
       else value += readNode(child);
     }
     return value;
   };
-  const text = normalizeDocumentText(paragraphs.map(readNode).join('\\n'));
+  const text = normalizeDocumentText(paragraphs.map(readNode).join('\n'));
   if (!text) throw new Error('В DOCX не найден извлекаемый текст.');
   return text;
 }
