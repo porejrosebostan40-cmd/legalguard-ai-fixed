@@ -20,6 +20,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [modelProgress, setModelProgress] = useState<string | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<string | null>(null);
   const [diagnosticMessage, setDiagnosticMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ function App() {
   function invalidateResult() {
     setResult(null);
     setCopied(false);
+    setAnalysisProgress(null);
   }
 
   async function loadFiles(files: File[]) {
@@ -59,11 +61,21 @@ function App() {
     setError(null);
     setCopied(false);
     setResult(null);
+    setAnalysisProgress('Подготовка материала к анализу…');
     try {
       const providers = providerMode === 'test'
         ? mockProviders
         : (await import('./providers/local.providers')).localProviders;
-      const pipeline = new LegalGuardPipeline(providers);
+      const pipeline = new LegalGuardPipeline(providers, ({ currentChunk, totalChunks, stage }) => {
+        const stageLabel = stage === 'analyst'
+          ? 'Анализ фрагмента'
+          : stage === 'arbiter'
+            ? 'Проверка фрагмента арбитром'
+            : stage === 'chunk-complete'
+              ? 'Фрагмент обработан'
+              : 'Анализ фрагментов завершён';
+        setAnalysisProgress(`${stageLabel}: ${currentChunk} из ${totalChunks}`);
+      });
       const next = await pipeline.run(text, {
         caseNumber: caseNumber || '—',
         courtName: courtName || '—',
@@ -161,6 +173,7 @@ function App() {
           {diagnosticMessage && providerMode === 'local' && <p className="muted">{diagnosticMessage}</p>}
           <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
           {modelProgress && providerMode === 'local' && <p className="muted">Загрузка локальной модели: {modelProgress}</p>}
+          {analysisProgress && <p className="muted" role="status" aria-live="polite">{analysisProgress}</p>}
           {error && <div className="error-box">{error}</div>}
         </article>
 
