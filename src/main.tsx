@@ -119,7 +119,7 @@ function App() {
             </select>
           </label>
           <label>Источник ИИ
-            <select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local')}>
+            <select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'text' | 'test' | 'local')}>
               <option value="text">Проверка текста без ИИ</option>
               <option value="local">Локальная модель</option>
               <option value="test">Демонстрационный тест</option>
