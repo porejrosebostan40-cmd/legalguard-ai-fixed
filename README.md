@@ -69,7 +69,7 @@ PDF.js используется для извлечения текста из з
 
 ## Проверки
 
-CI запускает `npm audit --audit-level=high` до сборки; high/critical advisories блокируют успешный pipeline.
+CI запускает `npm audit --audit-level=moderate` до сборки; high/critical advisories блокируют успешный pipeline.
 
 `npm install --legacy-peer-deps`
 
