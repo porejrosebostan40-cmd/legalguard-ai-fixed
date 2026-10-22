@@ -37,6 +37,7 @@ function App() {
 
   async function loadFile(file: File | undefined) {
     if (!file) return;
+    invalidateResult();
     setError(null);
     try {
       const document = await readTextDocument(file);
@@ -52,6 +53,7 @@ function App() {
     setRunning(true);
     setError(null);
     setCopied(false);
+    setResult(null);
     try {
       const providers = providerMode === 'test'
         ? mockProviders
@@ -185,7 +187,7 @@ function App() {
         <section className="panel document-preview">
           <div className="document-heading">
             <h2>Сформированный документ</h2>
-            <button type="button" onClick={() => void copyDocument()}>{copied ? 'Скопировано' : 'Копировать'}</button>
+            <button type="button" disabled={running} onClick={() => void copyDocument()}>{copied ? 'Скопировано' : 'Копировать'}</button>
           </div>
           <pre>{result.finalDocument}</pre>
         </section>
