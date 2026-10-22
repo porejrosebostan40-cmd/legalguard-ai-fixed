@@ -30,10 +30,10 @@ export class LegalGuardPipeline {
 
     pipelineTrace.push(trace('01 ДОКУМЕНТЫ OK', 'documents', 'ok', 'Материал принят.'));
 
-    const findings = await this.providers.deepSeek.analyze(documentText);
+    const findings = await this.providers.analyst.analyze(documentText);
     pipelineTrace.push(trace('02 АНАЛИТИК OK', 'analyst', 'ok', `Первичный анализ сформировал оснований: ${findings.length}.`));
 
-    const arbiterFindings = await this.providers.chatGPT.arbitrate(documentText, findings);
+    const arbiterFindings = await this.providers.arbiter.arbitrate(documentText, findings);
     pipelineTrace.push(trace('03 АРБИТР OK', 'arbiter', 'ok', 'Арбитр обработал результаты первичного анализа.'));
 
     const accepted = arbiterFindings.filter((finding) => finding.status === 'accepted');
