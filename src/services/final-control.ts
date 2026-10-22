@@ -4,7 +4,7 @@ import type {
   FinalControlResult,
   StrategyArgument,
 } from '../core/legalguard.types';
-import { hasDocumentBoundaryMarkers, isSourceReferenceGrounded } from './source-attribution';
+import { isSourceReferenceGrounded } from './source-attribution';
 
 function isValidCourtDate(value: string): boolean {
   let year: number;
