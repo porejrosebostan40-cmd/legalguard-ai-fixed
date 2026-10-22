@@ -8,6 +8,7 @@ const completeIntake: UdoIntake = {
   offenseArticles: 'ст. 000 УК РФ — пример для теста',
   sentenceDescription: 'Лишение свободы на 5 лет — тестовые данные',
   sentenceStartDate: '01.01.2024',
+  sentenceStartDateVerified: true,
   minimumEligibilityDate: '01.09.2026',
   eligibilityDateVerified: true,
   behaviorSummary: 'Тестовое описание поведения за период отбывания наказания.',
@@ -39,6 +40,14 @@ describe('UDO readiness checklist', () => {
     expect(result.completenessStatus).toBe('complete_for_human_review');
     expect(result.missingCount).toBe(0);
     expect(result.verificationCount).toBe(0);
+  });
+
+  it('requires explicit verification of the sentence-start date and rejects impossible dates', () => {
+    const unchecked = evaluateUdoReadiness({ ...completeIntake, sentenceStartDateVerified: false });
+    expect(unchecked.items.find((item) => item.id === 'start-date')?.status).toBe('needs_verification');
+
+    const impossible = evaluateUdoReadiness({ ...completeIntake, sentenceStartDate: '31.02.2026' });
+    expect(impossible.items.find((item) => item.id === 'start-date')?.status).toBe('needs_verification');
   });
 
   it('requires separate verification of the minimum-time calculation', () => {
