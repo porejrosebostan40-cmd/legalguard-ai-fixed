@@ -69,6 +69,13 @@ describe('runFinalControl', () => {
     expect(result.blockingReasons.some((reason) => reason.includes('не указана предполагаемая правовая основа'))).toBe(true);
   });
 
+  it('keeps an unresolved finding as a warning when another is accepted', () => {
+    const unresolved: ArbiterFinding = { id: 'F-2', claim: 'Дополнительный вопрос', sourceQuote: 'Фрагмент требует отдельной проверки судом.', legalBasis: [], confidence: 0.4, status: 'needs_review', legalSignificance: 'medium', reasoning: 'Недостаточно данных для уверенного вывода.' };
+    const result = runFinalControl(documentText, [acceptedFinding(), unresolved], [strategy()]);
+    expect(result.passed).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('требует ручной оценки'))).toBe(true);
+  });
+
   it('blocks a strategy argument based on a rejected finding', () => {
     const result = runFinalControl(documentText, [acceptedFinding({ status: 'rejected' })], [strategy()]);
     expect(result.passed).toBe(false);
