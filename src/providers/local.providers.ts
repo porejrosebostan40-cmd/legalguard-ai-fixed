@@ -173,7 +173,7 @@ export function createLocalProviders(endpoint: string, modelName = 'local-model'
 
         const uniqueFindings = new Map<string, DeepSeekFinding>();
         for (const finding of allFindings) {
-          const normalize = (value: string) => value.replace(/\\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
+          const normalize = (value: string) => value.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
           const key = `${normalize(finding.claim)}|${normalize(finding.sourceQuote || '')}`;
           if (!uniqueFindings.has(key)) uniqueFindings.set(key, finding);
         }
