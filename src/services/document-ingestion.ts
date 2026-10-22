@@ -55,17 +55,22 @@ async function readDocx(file: File): Promise<string> {
 }
 
 export async function readTextDocument(file: File): Promise<DocumentInput> {
-  const extension = file.name.split('.').pop()?.toLowerCase();
+  // Android document providers can return a MIME type even when the filename has no extension.
+  const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() : '';
+  const detectedType = file.type.toLowerCase();
+  const isPdf = extension === 'pdf' || detectedType === 'application/pdf';
+  const isDocx = extension === 'docx' || detectedType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const isTxt = extension === 'txt' || detectedType === 'text/plain';
   let text: string;
   let mimeType = file.type || 'application/octet-stream';
 
-  if (extension === 'txt') {
+  if (isTxt) {
     text = normalizeDocumentText(await file.text());
     mimeType = file.type || 'text/plain';
-  } else if (extension === 'pdf') {
+  } else if (isPdf) {
     text = await readPdf(file);
     mimeType = file.type || 'application/pdf';
-  } else if (extension === 'docx') {
+  } else if (isDocx) {
     text = await readDocx(file);
     mimeType = file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   } else {
