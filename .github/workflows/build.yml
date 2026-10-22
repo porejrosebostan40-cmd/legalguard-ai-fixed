@@ -16,6 +16,7 @@ jobs:
           node-version: 20
       - run: npm install --legacy-peer-deps --no-audit --no-fund
       - run: npm run build
+      - run: npm test
 
       # CI deliberately performs no external AI-provider requests.
       # Build verification must work without API keys or paid usage.
