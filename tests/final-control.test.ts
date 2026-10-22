@@ -45,7 +45,7 @@ describe('runFinalControl', () => {
     );
 
     expect(result.passed).toBe(true);
-    expect(result.warnings.some((warning) => warning.includes('юридическую проверку'))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('юридическая проверка'))).toBe(true);
   });
 
   it('blocks an accepted finding when its quote is absent from the source', () => {
