@@ -2,7 +2,7 @@ import { StrictMode, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
-import { createLocalProviders } from './providers/local.providers';
+import { checkLocalModelConnection, createLocalProviders } from './providers/local.providers';
 import { readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
@@ -17,6 +17,8 @@ function App() {
   const [providerMode, setProviderMode] = useState<'test' | 'local'>('test');
   const [localEndpoint, setLocalEndpoint] = useState('http://127.0.0.1:8080/v1/chat/completions');
   const [localModel, setLocalModel] = useState('local-model');
+  const [checkingLocal, setCheckingLocal] = useState(false);
+  const [localStatus, setLocalStatus] = useState<{ kind: 'ok' | 'error'; message: string } | null>(null);
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,19 @@ function App() {
     ),
     [providerMode, localEndpoint, localModel],
   );
+
+  async function checkLocalConnection() {
+    setCheckingLocal(true);
+    setLocalStatus(null);
+    try {
+      const message = await checkLocalModelConnection(localEndpoint);
+      setLocalStatus({ kind: 'ok', message });
+    } catch (cause) {
+      setLocalStatus({ kind: 'error', message: cause instanceof Error ? cause.message : 'Не удалось проверить локальный сервер.' });
+    } finally {
+      setCheckingLocal(false);
+    }
+  }
 
   async function loadFile(file: File | undefined) {
     if (!file) return;
@@ -90,9 +105,11 @@ function App() {
         </div>
         {providerMode === 'local' && (
           <label className="local-endpoint">Адрес локального OpenAI-совместимого сервера
-            <input value={localEndpoint} onChange={(event) => setLocalEndpoint(event.target.value)} placeholder="http://127.0.0.1:8080/v1/chat/completions" />
+            <input value={localEndpoint} onChange={(event) => { setLocalEndpoint(event.target.value); setLocalStatus(null); }} placeholder="http://127.0.0.1:8080/v1/chat/completions" />
             <span className="muted">Допускаются только loopback-адреса. Модель должна работать локально; сервер должен разрешать запросы браузера (CORS).</span>
-            <span>Имя модели<input value={localModel} onChange={(event) => setLocalModel(event.target.value)} placeholder="local-model" /></span>
+            <span>Имя модели<input value={localModel} onChange={(event) => { setLocalModel(event.target.value); setLocalStatus(null); }} placeholder="local-model" /></span>
+            <button type="button" disabled={checkingLocal} onClick={() => void checkLocalConnection()}>{checkingLocal ? 'Проверка…' : 'Проверить подключение'}</button>
+            {localStatus && <p className={`connection-status ${localStatus.kind}`}>{localStatus.message}</p>}
           </label>
         )}
         {providerMode === 'test' && <p className="mode-note">Демонстрационный режим использует заранее заданные примеры. Он не анализирует ваш документ как реальная модель.</p>}
