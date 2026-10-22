@@ -29,7 +29,7 @@ export function validateArbiterCoverage(
       throw new Error(`Аналитик не указал точную цитату для основания ${finding.id}; конвейер остановлен до арбитража.`);
     }
     if (!reviewedQuote || originalQuote !== reviewedQuote) {
-      throw new Error(`Арбитр изменил или удалил цитату-основание ${finding.id}. Источник должен быть сверен заново; конвейер остановлен.`);
+      throw new Error(`Арбитр изменил цитату-основание ${finding.id} или удалил её. Источник должен быть сверен заново; конвейер остановлен.`);
     }
   }
 
