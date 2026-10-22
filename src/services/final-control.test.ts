@@ -103,6 +103,16 @@ describe('runFinalControl', () => {
     expect(result.blockingReasons.some((reason) => reason.includes('Цитата основания F-1 не найдена'))).toBe(true);
   });
 
+  it('blocks source metadata that does not match the checked quotation', () => {
+    const result = runFinalControl(
+      documentText,
+      [acceptedFinding({ source: { documentId: 'Исходный материал', quote: 'Другая фраза из документа.' } })],
+      [strategy()],
+    );
+    expect(result.passed).toBe(false);
+    expect(result.blockingReasons.some((reason) => reason.includes('не совпадает с цитатой'))).toBe(true);
+  });
+
   it('blocks empty source documents', () => {
     const result = runFinalControl('  ', [acceptedFinding()], [strategy()]);
     expect(result.passed).toBe(false);
