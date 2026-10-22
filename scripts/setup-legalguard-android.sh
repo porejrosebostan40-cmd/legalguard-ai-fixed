@@ -14,7 +14,7 @@ fi
 
 echo "Этап 1/5: установка системных зависимостей"
 pkg update -y
-pkg install -y git cmake clang make nodejs-lts curl
+pkg install -y git cmake clang make libomp nodejs-lts curl
 
 echo "Этап 2/5: получение исходников llama.cpp"
 if [ ! -d "$LLAMA_DIR/.git" ]; then
