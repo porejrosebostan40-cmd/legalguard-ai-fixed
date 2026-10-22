@@ -70,15 +70,15 @@ export interface LegalGuardResult {
   readyForSubmission: boolean;
 }
 
-export interface DeepSeekAnalyzer {
+export interface PrimaryAnalyzer {
   analyze(documentText: string): Promise<DeepSeekFinding[]>;
 }
 
-export interface ChatGPTArbiter {
+export interface LegalArbiter {
   arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]>;
 }
 
 export interface AIProviderSet {
-  deepSeek: DeepSeekAnalyzer;
-  chatGPT: ChatGPTArbiter;
+  analyst: PrimaryAnalyzer;
+  arbiter: LegalArbiter;
 }
