@@ -18,6 +18,10 @@ export interface DocumentInput {
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 export const MAX_BATCH_FILES = 10;
 export const MAX_BATCH_BYTES = 50 * 1024 * 1024;
+export const MAX_EXTRACTED_DOCUMENT_CHARS = 84_000;
+const MAX_PDF_PAGES = 300;
+const MAX_DOCX_EXPANDED_BYTES = 40 * 1024 * 1024;
+const MAX_DOCX_XML_BYTES = 8 * 1024 * 1024;
 
 export function normalizeDocumentText(text: string): string {
   return text
@@ -35,7 +39,12 @@ async function readPdf(file: File): Promise<string> {
   const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
   const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  if (pdf.numPages > MAX_PDF_PAGES) {
+    await pdf.destroy();
+    throw new Error(`PDF содержит более ${MAX_PDF_PAGES} страниц. Разделите документ на части.`);
+  }
   const pages: string[] = [];
+  let extractedChars = 0;
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
@@ -44,6 +53,11 @@ async function readPdf(file: File): Promise<string> {
       .map((item) => ('str' in item ? item.str : ''))
       .filter(Boolean)
       .join(' ');
+    extractedChars += pageText.length;
+    if (extractedChars > MAX_EXTRACTED_DOCUMENT_CHARS) {
+      await pdf.destroy();
+      throw new Error('Извлечённый текст превышает безопасный предел 84 000 символов. Разделите документ на части.');
+    }
     pages.push(`[Страница ${pageNumber}]\n${pageText}`);
   }
 
@@ -54,17 +68,87 @@ async function readPdf(file: File): Promise<string> {
   return text;
 }
 
+function inspectDocxZip(bytes: Uint8Array): void {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const read32 = (offset: number) => view.getUint32(offset, true);
+  const read16 = (offset: number) => view.getUint16(offset, true);
+  const searchStart = Math.max(0, bytes.length - 65_557);
+  let eocd = -1;
+  for (let offset = bytes.length - 22; offset >= searchStart; offset -= 1) {
+    if (read32(offset) === 0x06054b50) {
+      eocd = offset;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error('DOCX не содержит корректного ZIP-каталога.');
+
+  const diskNumber = read16(eocd + 4);
+  const centralDisk = read16(eocd + 6);
+  const entriesOnDisk = read16(eocd + 8);
+  const entryCount = read16(eocd + 10);
+  const centralSize = read32(eocd + 12);
+  const centralOffset = read32(eocd + 16);
+  if (diskNumber !== 0 || centralDisk !== 0 || entriesOnDisk !== entryCount) {
+    throw new Error('Многотомные DOCX/ZIP-архивы не поддерживаются.');
+  }
+  if (entryCount === 0xffff || centralSize === 0xffffffff || centralOffset === 0xffffffff) {
+    throw new Error('ZIP64 DOCX не поддерживается безопасным парсером.');
+  }
+  if (centralOffset + centralSize > eocd || centralOffset + centralSize > bytes.length) {
+    throw new Error('DOCX содержит повреждённый ZIP-каталог.');
+  }
+
+  let offset = centralOffset;
+  let expandedTotal = 0;
+  let mainDocumentCount = 0;
+  for (let index = 0; index < entryCount; index += 1) {
+    if (offset + 46 > centralOffset + centralSize || read32(offset) !== 0x02014b50) {
+      throw new Error('DOCX содержит повреждённую запись ZIP-каталога.');
+    }
+    const flags = read16(offset + 8);
+    const uncompressedSize = read32(offset + 24);
+    const nameLength = read16(offset + 28);
+    const extraLength = read16(offset + 30);
+    const commentLength = read16(offset + 32);
+    const entryEnd = offset + 46 + nameLength + extraLength + commentLength;
+    if (entryEnd > centralOffset + centralSize || uncompressedSize === 0xffffffff) {
+      throw new Error('DOCX содержит неподдерживаемую или повреждённую ZIP-запись.');
+    }
+    if ((flags & 1) !== 0) throw new Error('Зашифрованные DOCX не поддерживаются.');
+    const name = new TextDecoder().decode(bytes.subarray(offset + 46, offset + 46 + nameLength));
+    expandedTotal += uncompressedSize;
+    if (expandedTotal > MAX_DOCX_EXPANDED_BYTES) {
+      throw new Error('Распакованный DOCX превышает безопасный предел 40 МБ.');
+    }
+    if (name === 'word/document.xml') {
+      mainDocumentCount += 1;
+      if (uncompressedSize > MAX_DOCX_XML_BYTES) {
+        throw new Error('Основной XML-текст DOCX превышает безопасный предел 8 МБ.');
+      }
+    }
+    offset = entryEnd;
+  }
+  if (offset !== centralOffset + centralSize || mainDocumentCount !== 1) {
+    throw new Error('DOCX должен содержать ровно одну корректную запись word/document.xml.');
+  }
+}
+
 async function readDocx(file: File): Promise<string> {
   const { strFromU8, unzipSync } = await import('fflate');
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  inspectDocxZip(bytes);
   let archive: Record<string, Uint8Array>;
   try {
-    archive = unzipSync(new Uint8Array(await file.arrayBuffer()));
+    archive = unzipSync(bytes);
   } catch {
     throw new Error('Файл DOCX повреждён или не является корректным ZIP-документом.');
   }
 
   const documentXml = archive['word/document.xml'];
   if (!documentXml) throw new Error('В DOCX отсутствует основной текстовый документ.');
+  if (documentXml.byteLength > MAX_DOCX_XML_BYTES) {
+    throw new Error('Основной XML-текст DOCX превышает безопасный предел 8 МБ.');
+  }
 
   const xml = new DOMParser().parseFromString(strFromU8(documentXml), 'application/xml');
   if (xml.getElementsByTagName('parsererror').length > 0) {
@@ -86,6 +170,9 @@ async function readDocx(file: File): Promise<string> {
   };
   const text = normalizeDocumentText(paragraphs.map(readNode).join('\n'));
   if (!text) throw new Error('В DOCX не найден извлекаемый текст.');
+  if (text.length > MAX_EXTRACTED_DOCUMENT_CHARS) {
+    throw new Error('Извлечённый текст превышает безопасный предел 84 000 символов. Разделите документ на части.');
+  }
   return text;
 }
 
@@ -112,6 +199,9 @@ export async function readTextDocument(file: File): Promise<DocumentInput> {
   }
 
   if (!text) throw new Error('Файл не содержит текста.');
+  if (text.length > MAX_EXTRACTED_DOCUMENT_CHARS) {
+    throw new Error('Извлечённый текст превышает безопасный предел 84 000 символов. Разделите документ на части.');
+  }
   return { name: file.name, text, mimeType };
 }
 
@@ -120,8 +210,12 @@ export async function readTextDocument(file: File): Promise<DocumentInput> {
  * so quotes can be traced back to the file they came from.
  */
 export function combineDocuments(documents: DocumentInput[]): string {
-  return documents.map((document) => {
+  const combined = documents.map((document) => {
     const safeName = document.name.replace(/[\r\n]+/g, ' ').trim() || 'Документ без имени';
     return `=== НАЧАЛО ДОКУМЕНТА: ${safeName} ===\n${document.text}\n=== КОНЕЦ ДОКУМЕНТА: ${safeName} ===`;
   }).join('\n\n');
+  if (combined.length > MAX_EXTRACTED_DOCUMENT_CHARS) {
+    throw new Error('Общий извлечённый текст превышает безопасный предел 84 000 символов. Разделите материалы на несколько запусков.');
+  }
+  return combined;
 }
