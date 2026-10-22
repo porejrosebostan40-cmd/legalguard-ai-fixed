@@ -3,6 +3,9 @@ name: Generate npm lockfile for feature branch
 on:
   push:
     branches: ['fix/final-control-and-regression-tests']
+  pull_request:
+    branches: ['safety/free-core-v1']
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -12,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -26,4 +31,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
           git commit -m "chore: lock tested npm dependencies"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          branch="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          git push origin "HEAD:$branch"
