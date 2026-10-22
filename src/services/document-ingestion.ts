@@ -87,6 +87,11 @@ function inspectDocxZip(bytes: Uint8Array): void {
   }
   if (eocd < 0) throw new Error('DOCX не содержит корректного ZIP-каталога.');
 
+  const commentLength = read16(eocd + 20);
+  if (eocd + 22 + commentLength !== bytes.length) {
+    throw new Error('DOCX содержит некорректную длину ZIP-комментария.');
+  }
+
   const diskNumber = read16(eocd + 4);
   const centralDisk = read16(eocd + 6);
   const entriesOnDisk = read16(eocd + 8);
