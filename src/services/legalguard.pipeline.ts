@@ -61,7 +61,7 @@ export class LegalGuardPipeline {
     }));
     pipelineTrace.push(trace('04 ПРОЕКТ СТРАТЕГИИ', 'strategist', strategy.length ? 'ok' : 'warning', `В проект стратегии включено оснований: ${strategy.length}.`));
 
-    const finalControl = runFinalControl(documentText, arbiterFindings, strategy);
+    const finalControl = runFinalControl(documentText, arbiterFindings, strategy, caseInfo);
     pipelineTrace.push(trace(
       '05 ФИНАЛЬНЫЙ КОНТРОЛЬ',
       'final-control',
