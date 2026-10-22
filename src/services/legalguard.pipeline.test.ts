@@ -49,6 +49,14 @@ describe('LegalGuard draft generation', () => {
     expect(result.finalDocument).toBeNull();
   });
 
+  it('does not generate a draft while required case metadata is missing', async () => {
+    const incompleteCase = { ...caseInfo, caseNumber: '—' };
+    const result = await new LegalGuardPipeline(providers()).run(documentText, incompleteCase);
+    expect(result.finalControl?.passed).toBe(false);
+    expect(result.finalControl?.blockingReasons.some((reason) => reason.includes('номер дела'))).toBe(true);
+    expect(result.finalDocument).toBeNull();
+  });
+
   it('keeps findings that need review out of the generated draft', async () => {
     const reviewFinding = { ...accepted, status: 'needs_review' as const };
     const result = await new LegalGuardPipeline(providers(reviewFinding)).run(documentText, caseInfo);
