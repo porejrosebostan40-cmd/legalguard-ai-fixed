@@ -29,12 +29,12 @@ const findings: DeepSeekFinding[] = [
 ];
 
 export const mockProviders: AIProviderSet = {
-  deepSeek: {
+  analyst: {
     async analyze(): Promise<DeepSeekFinding[]> {
       return findings;
     },
   },
-  chatGPT: {
+  arbiter: {
     async arbitrate(_documentText, input): Promise<ArbiterFinding[]> {
       return input.map((finding) => {
         if (finding.id === 'DS-001') {
