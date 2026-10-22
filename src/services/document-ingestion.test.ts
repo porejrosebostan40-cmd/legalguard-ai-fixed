@@ -3,6 +3,25 @@ import { combineDocuments, MAX_BATCH_BYTES, MAX_BATCH_FILES, normalizeDocumentTe
 
 const { pdfMock } = vi.hoisted(() => ({ pdfMock: { empty: false } }));
 
+function makeDocxZip(): Uint8Array {
+  const name = new TextEncoder().encode('word/document.xml');
+  const xml = new TextEncoder().encode('<w:document />');
+  const centralSize = 46 + name.length;
+  const eocdOffset = centralSize;
+  const bytes = new Uint8Array(centralSize + 22);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, 0x02014b50, true);
+  view.setUint32(24, xml.length, true);
+  view.setUint16(28, name.length, true);
+  bytes.set(name, 46);
+  view.setUint32(eocdOffset, 0x06054b50, true);
+  view.setUint16(eocdOffset + 8, 1, true);
+  view.setUint16(eocdOffset + 10, 1, true);
+  view.setUint32(eocdOffset + 12, centralSize, true);
+  view.setUint32(eocdOffset + 16, 0, true);
+  return bytes;
+}
+
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: { workerSrc: '' },
   getDocument: () => ({
