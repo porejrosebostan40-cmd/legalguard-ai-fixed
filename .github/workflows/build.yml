@@ -23,4 +23,4 @@ jobs:
       - name: Тесты юридических инвариантов
         run: npm test
       - name: Проверка синтаксиса Android-скриптов
-        run: bash -n scripts/run-local-llama-server.sh scripts/start-legalguard-android.sh
+        run: bash -n scripts/run-local-llama-server.sh scripts/start-legalguard-android.sh scripts/setup-legalguard-android.sh
