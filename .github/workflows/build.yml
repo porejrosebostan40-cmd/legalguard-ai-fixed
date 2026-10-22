@@ -23,6 +23,11 @@ jobs:
       - name: Audit dependencies for moderate-or-higher vulnerabilities
         run: npm audit --audit-level=moderate
       - run: npm run build
+      - name: Verify GitHub Pages asset paths
+        run: |
+          test -f dist/index.html
+          grep -q 'src="/legalguard-ai-fixed/assets/' dist/index.html
+          grep -q 'href="/legalguard-ai-fixed/assets/' dist/index.html
       - run: npm test
       # CI deliberately performs no external AI-provider requests.
       # Build verification must work without API keys or paid usage.
