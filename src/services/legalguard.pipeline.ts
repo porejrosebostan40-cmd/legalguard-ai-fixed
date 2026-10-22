@@ -6,6 +6,7 @@ import type {
   StrategyArgument,
 } from '../core/legalguard.types';
 import { runFinalControl } from './final-control';
+import { validateArbiterCoverage } from './cross-stage-validation';
 
 function trace(
   code: string,
@@ -40,7 +41,8 @@ export class LegalGuardPipeline {
         : 'Провайдер не выявил кандидатов. Это не подтверждает отсутствие нарушений.',
     ));
 
-    const arbiterFindings = await this.providers.chatGPT.arbitrate(documentText, findings);
+    const rawArbiterFindings = await this.providers.chatGPT.arbitrate(documentText, findings);
+    const arbiterFindings = validateArbiterCoverage(findings, rawArbiterFindings);
     pipelineTrace.push(trace(
       '03 ПРАВОВАЯ ОЦЕНКА',
       'arbiter',
