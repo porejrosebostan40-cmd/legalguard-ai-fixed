@@ -1,27 +1,38 @@
-import { StrictMode, useMemo, useState } from 'react';
+import { StrictMode, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
 import { httpProviders } from './providers/http.providers';
+import { localProviders } from './providers/local.providers';
 import { readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
 
 function App() {
-  const [text, setText] = useState('Вставьте текст судебного акта для анализа.');
+  const [text, setText] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
   const [caseNumber, setCaseNumber] = useState('');
   const [courtName, setCourtName] = useState('');
   const [verdictDate, setVerdictDate] = useState('');
   const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
-  const [providerMode, setProviderMode] = useState<'test' | 'server'>('test');
+  const [providerMode, setProviderMode] = useState<'test' | 'local' | 'server'>('test');
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [modelProgress, setModelProgress] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleProgress = (event: Event) => {
+      const detail = (event as CustomEvent<{ text: string; progress: number }>).detail;
+      setModelProgress(detail ? `${detail.text} (${Math.round(detail.progress * 100)}%)` : null);
+    };
+    window.addEventListener('legalguard:model-progress', handleProgress);
+    return () => window.removeEventListener('legalguard:model-progress', handleProgress);
+  }, []);
 
   const pipeline = useMemo(
-    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : httpProviders),
+    () => new LegalGuardPipeline(providerMode === 'test' ? mockProviders : providerMode === 'local' ? localProviders : httpProviders),
     [providerMode],
   );
 
@@ -70,9 +81,9 @@ function App() {
       <header>
         <div>
           <h1>LegalGuard AI</h1>
-          <p>Карманный адвокат · контролируемый юридический конвейер</p>
+          <p>Инструмент анализа судебных материалов · контролируемый конвейер</p>
         </div>
-        <span className="badge">MVP · БЕЗ КЛЮЧЕЙ В БРАУЗЕРЕ</span>
+        <span className="badge">{providerMode === 'local' ? 'ЛОКАЛЬНЫЙ ИИ · БЕЗ API' : providerMode === 'server' ? 'ВНЕШНИЙ ИИ · НУЖНЫ КЛЮЧИ' : 'РЕЖИМ ПРОВЕРКИ ИНТЕРФЕЙСА'}</span>
       </header>
 
       <section className="panel metadata">
@@ -82,19 +93,21 @@ function App() {
           <label>Суд<input value={courtName} onChange={(event) => setCourtName(event.target.value)} placeholder="Наименование суда" /></label>
           <label>Дата акта<input value={verdictDate} onChange={(event) => setVerdictDate(event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
           <label>Вид жалобы<select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
-          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'server')}><option value="test">Тестовый прогон</option><option value="server">Серверный провайдер</option></select></label>
+          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'server')}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option><option value="server">Внешний серверный ИИ (требует ключи)</option></select></label>
         </div>
       </section>
 
       <section className="grid">
         <article className="panel">
           <h2>Судебный материал</h2>
+          {providerMode === 'test' && <p className="control-warning">Тестовый режим не выполняет юридический анализ и не создаёт вымышленные основания.</p>}
+          {providerMode === 'local' && <p className="control-warning">Локальная модель работает на устройстве при наличии WebGPU. При первом запуске потребуется загрузка модели примерно на 1–2 ГБ. Текст дела не отправляется в AI API. На неподдерживаемых устройствах анализ не запустится.</p>}
           <div className="upload-row">
             <label className="file-button">Загрузить TXT<input type="file" accept=".txt,text/plain" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
           </div>
           <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
-          <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
+          <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>\n          {modelProgress && providerMode === 'local' && <p className="muted">Загрузка локальной модели: {modelProgress}</p>}
           {error && <div className="error-box">{error}</div>}
         </article>
 
@@ -113,7 +126,7 @@ function App() {
                 ))}
               </div>
               <div className={result.readyForSubmission ? 'result pass' : 'result block'}>
-                {result.readyForSubmission ? 'ГОТОВО К ПОДАЧЕ' : 'ПОДАЧА ЗАБЛОКИРОВАНА'}
+                {result.finalControl?.passed ? 'ЧЕРНОВИК СОЗДАН — ТРЕБУЕТ ПРОВЕРКИ' : 'НЕДОСТАТОЧНО ДАННЫХ / КОНТРОЛЬ НЕ ПРОЙДЕН'}
               </div>
             </>
           )}
