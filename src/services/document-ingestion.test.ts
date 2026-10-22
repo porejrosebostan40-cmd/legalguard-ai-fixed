@@ -134,6 +134,14 @@ describe('document ingestion', () => {
     expect(combined).toContain('Текст апелляции.');
   });
 
+  it('adds a user-selected document role to the boundary label', () => {
+    const combined = combineDocuments([
+      { name: 'decision.txt', text: 'Судебный акт содержит мотивировку.', mimeType: 'text/plain', role: 'court_act' },
+    ]);
+    expect(combined).toContain('decision.txt [тип материала: судебный акт]');
+    expect(combined).toContain('Судебный акт содержит мотивировку.');
+  });
+
   it('rejects combined text beyond the model context budget', () => {
     expect(() => combineDocuments([{ name: 'large.txt', text: 'x'.repeat(84_000), mimeType: 'text/plain' }])).toThrow('84 000 символов');
   });
