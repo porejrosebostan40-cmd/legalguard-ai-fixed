@@ -1,4 +1,5 @@
 import type { AIProviderSet, ArbiterFinding, DeepSeekFinding } from '../core/legalguard.types';
+import { validateAnalystFindings, validateArbiterFindings } from '../services/provider-validation';
 
 type JsonResponse<T> = { data: T };
 
