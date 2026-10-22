@@ -1,4 +1,6 @@
-import { expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
+
+afterEach(() => vi.restoreAllMocks());
 import { createLocalProviders } from '../src/providers/local.providers';
 
 it('rejects remote endpoints before making a network request', async () => {
@@ -8,7 +10,6 @@ it('rejects remote endpoints before making a network request', async () => {
   await expect(providers.analyst.analyze('Тестовый судебный текст.'))
     .rejects.toThrow('Удалённые адреса запрещены');
   expect(fetchSpy).not.toHaveBeenCalled();
-  fetchSpy.mockRestore();
 });
 
 it('accepts a loopback endpoint for local inference', () => {
