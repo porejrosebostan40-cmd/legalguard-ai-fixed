@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { UdoDocumentStatus, UdoIntake, UdoOpinion } from './udo-readiness';
+import type { UdoDocumentStatus, UdoIntake, UdoOpinion, UdoRestitutionProofStatus } from './udo-readiness';
 import { buildUdoReadinessReport, evaluateUdoReadiness } from './udo-readiness';
 
 const emptyIntake: UdoIntake = {
@@ -84,7 +84,7 @@ export function UdoReadiness() {
         <label>Заключение администрации<select value={input.administrationOpinion} onChange={(event) => update('administrationOpinion', event.target.value as UdoOpinion)}><option value="unknown">Неизвестно / нет заключения</option><option value="supports">Поддерживает</option><option value="opposes">Не поддерживает</option></select></label>
         <label>Характеристика учреждения<select value={input.characterizationStatus} onChange={(event) => update('characterizationStatus', event.target.value as UdoDocumentStatus)}>{Object.entries(documentStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label>Копия приговора и последующих актов<select value={input.sentenceCopyStatus} onChange={(event) => update('sentenceCopyStatus', event.target.value as UdoDocumentStatus)}>{Object.entries(documentStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label>Подтверждения возмещения вреда<select value={input.restitutionProofStatus} onChange={(event) => update('restitutionProofStatus', event.target.value as UdoDocumentStatus)}>{Object.entries(documentStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label>Подтверждения возмещения вреда<select value={input.restitutionProofStatus} onChange={(event) => update('restitutionProofStatus', event.target.value as UdoRestitutionProofStatus)}><option value="unknown">Не знаю</option><option value="available">Есть на руках</option><option value="requested">Запрошены, ожидаются</option><option value="missing">Отсутствуют</option><option value="not_applicable">Не применимо — объяснить в поле о возмещении</option></select></label>
         <label>Иные материалы об исправлении<textarea value={input.otherMaterials} onChange={(event) => update('otherMaterials', event.target.value)} placeholder="Например, документы о семье, жилье, обучении или работе после освобождения" /></label>
         <label>Дата предыдущего отказа суда, если был<input value={input.previousRefusalDate} onChange={(event) => update('previousRefusalDate', event.target.value)} placeholder="ДД.ММ.ГГГГ или оставьте пустым" /></label>
       </div>
