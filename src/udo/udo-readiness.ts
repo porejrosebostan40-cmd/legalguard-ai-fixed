@@ -2,6 +2,7 @@ import { isValidCourtDate } from '../services/case-info-validation';
 
 export type UdoOpinion = 'supports' | 'opposes' | 'unknown';
 export type UdoDocumentStatus = 'available' | 'requested' | 'missing' | 'unknown';
+export type UdoRestitutionProofStatus = UdoDocumentStatus | 'not_applicable';
 
 export interface UdoIntake {
   caseNumber: string;
@@ -21,7 +22,7 @@ export interface UdoIntake {
   administrationOpinion: UdoOpinion;
   characterizationStatus: UdoDocumentStatus;
   sentenceCopyStatus: UdoDocumentStatus;
-  restitutionProofStatus: UdoDocumentStatus;
+  restitutionProofStatus: UdoRestitutionProofStatus;
   otherMaterials: string;
   previousRefusalDate: string;
   repeatPetitionTimingVerified: boolean;
@@ -80,7 +81,7 @@ export function evaluateUdoReadiness(input: UdoIntake): UdoReadinessResult {
     item('administration', 'Позиция администрации учреждения', input.administrationOpinion !== 'unknown' ? 'provided' : 'missing', 'Зафиксируйте содержание заключения администрации; позиция сама по себе не предрешает решение суда.', 'Часть 4.1 статьи 79 УК РФ; часть 2 статьи 175 УИК РФ'),
     item('characteristic', 'Характеристика учреждения', input.characterizationStatus === 'available' ? 'provided' : input.characterizationStatus === 'requested' ? 'needs_verification' : 'missing', 'Если характеристика запрошена, проверьте её получение и актуальность к судебному заседанию.', 'Часть 2 статьи 175 УИК РФ'),
     item('sentence-copy', 'Копия приговора и последующих судебных актов', input.sentenceCopyStatus === 'available' ? 'provided' : input.sentenceCopyStatus === 'requested' ? 'needs_verification' : 'missing', 'Соберите полный комплект актов, влияющих на наказание и исчисление срока.', 'Проверка исходных документов'),
-    item('restitution-proof', 'Подтверждение возмещения вреда', input.restitutionProofStatus === 'available' ? 'provided' : input.restitutionProofStatus === 'requested' ? 'needs_verification' : 'missing', 'Подготовьте платёжные документы, расписки или иные подтверждения, если они существуют.', 'Статья 79 УК РФ; статья 175 УИК РФ'),
+    item('restitution-proof', 'Подтверждение возмещения вреда', input.restitutionProofStatus === 'available' || input.restitutionProofStatus === 'not_applicable' ? 'provided' : input.restitutionProofStatus === 'requested' ? 'needs_verification' : 'missing', 'Подготовьте платёжные документы или объясните, почему подтверждение неприменимо (например, вред не присуждался). Не отмечайте неприменимость без проверки приговора.', 'Статья 79 УК РФ; статья 175 УИК РФ'),
     item('other-materials', 'Иные материалы об исправлении', filled(input.otherMaterials) ? 'provided' : 'missing', 'При наличии укажите и подтвердите сведения о поддержке семьи, жилье, работе после освобождения, обучении и иных значимых обстоятельствах.', 'Статья 175 УИК РФ'),
     item('repeat-timing', 'Проверка срока повторного обращения после отказа', !filled(input.previousRefusalDate) ? 'provided' : isValidCourtDate(input.previousRefusalDate.trim()) && input.repeatPetitionTimingVerified ? 'provided' : 'needs_verification', 'Если ранее был отказ, проверьте дату постановления и допустимость повторного обращения по актуальной редакции закона.', 'Часть 10 статьи 175 УИК РФ'),
   ];
