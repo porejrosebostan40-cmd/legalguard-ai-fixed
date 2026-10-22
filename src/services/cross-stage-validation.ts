@@ -19,5 +19,16 @@ export function validateArbiterCoverage(
   if (missingIds.length > 0) {
     throw new Error(`Арбитр не вынес оценку по основаниям аналитика: ${missingIds.join(', ')}. Конвейер остановлен.`);
   }
+
+  const candidateById = new Map(candidates.map((finding) => [finding.id, finding]));
+  for (const finding of reviewed) {
+    const candidate = candidateById.get(finding.id);
+    const originalQuote = candidate?.sourceQuote?.replace(/\\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
+    const reviewedQuote = finding.sourceQuote?.replace(/\\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
+    if (originalQuote && originalQuote !== reviewedQuote) {
+      throw new Error(`Арбитр изменил цитату-основание ${finding.id}. Источник должен быть сверен заново; конвейер остановлен.`);
+    }
+  }
+
   return reviewed;
 }
