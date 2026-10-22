@@ -3,7 +3,7 @@ import { normalizeDocumentText, readTextDocument } from './document-ingestion';
 
 describe('document ingestion', () => {
   it('normalizes line endings and removes null bytes', () => {
-    expect(normalizeDocumentText('  Суд\r\nуказал\u0000 факт.  \r\n')).toBe('  Суд\nуказал факт.');
+    expect(normalizeDocumentText('  Суд\r\nуказал\u0000 факт.  \r\n')).toBe('Суд\nуказал факт.');
   });
 
   it('reads plain TXT files', async () => {
