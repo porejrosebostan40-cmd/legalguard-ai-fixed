@@ -14,13 +14,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install dependencies reproducibly when lockfile exists
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci --legacy-peer-deps --no-audit --no-fund
-          else
-            npm install --legacy-peer-deps --no-audit --no-fund
-          fi
+      - name: Regenerate lockfile for pinned dependency updates
+        run: npm install --package-lock-only --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+      - name: Upload resolved lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: resolved-package-lock
+          path: |
+            package.json
+            package-lock.json
+          if-no-files-found: error
+      - name: Install dependencies reproducibly
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
       - name: Report resolved direct dependency versions
         run: npm ls --depth=0
       - name: Audit dependencies for high and critical vulnerabilities
