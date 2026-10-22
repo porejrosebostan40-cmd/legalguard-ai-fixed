@@ -29,6 +29,11 @@ function App() {
     return () => window.removeEventListener('legalguard:model-progress', handleProgress);
   }, []);
 
+  function invalidateResult() {
+    setResult(null);
+    setCopied(false);
+  }
+
   async function loadFile(file: File | undefined) {
     if (!file) return;
     setError(null);
@@ -36,7 +41,7 @@ function App() {
       const document = await readTextDocument(file);
       setText(document.text);
       setFileName(document.name);
-      setResult(null);
+      invalidateResult();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Не удалось прочитать файл.');
     }
@@ -69,8 +74,14 @@ function App() {
 
   async function copyDocument() {
     if (!result?.finalDocument) return;
-    await navigator.clipboard.writeText(result.finalDocument);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(result.finalDocument);
+      setCopied(true);
+      setError(null);
+    } catch {
+      setCopied(false);
+      setError('Не удалось скопировать документ. Проверьте разрешения браузера и попробуйте ещё раз.');
+    }
   }
 
   return (
@@ -86,11 +97,11 @@ function App() {
       <section className="panel metadata">
         <h2>Данные дела</h2>
         <div className="fields">
-          <label>Номер дела<input value={caseNumber} onChange={(event) => setCaseNumber(event.target.value)} placeholder="№ дела" /></label>
-          <label>Суд<input value={courtName} onChange={(event) => setCourtName(event.target.value)} placeholder="Наименование суда" /></label>
-          <label>Дата акта<input value={verdictDate} onChange={(event) => setVerdictDate(event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
-          <label>Вид жалобы<select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
-          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local')}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option></select></label>
+          <label>Номер дела<input value={caseNumber} disabled={running} onChange={(event) => { setCaseNumber(event.target.value); invalidateResult(); }} placeholder="№ дела" /></label>
+          <label>Суд<input value={courtName} disabled={running} onChange={(event) => { setCourtName(event.target.value); invalidateResult(); }} placeholder="Наименование суда" /></label>
+          <label>Дата акта<input value={verdictDate} disabled={running} onChange={(event) => { setVerdictDate(event.target.value); invalidateResult(); }} placeholder="ДД.ММ.ГГГГ" /></label>
+          <label>Вид жалобы<select value={complaintType} disabled={running} onChange={(event) => { setComplaintType(event.target.value as ComplaintType); invalidateResult(); }}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
+          <label>Источник ИИ<select value={providerMode} disabled={running} onChange={(event) => { setProviderMode(event.target.value as 'test' | 'local'); invalidateResult(); }}><option value="test">Без ИИ — проверка интерфейса</option><option value="local">Локальная модель на устройстве</option></select></label>
         </div>
       </section>
 
@@ -100,11 +111,12 @@ function App() {
           {providerMode === 'test' && <p className="control-warning">Тестовый режим не выполняет юридический анализ и не создаёт вымышленные основания.</p>}
           {providerMode === 'local' && <p className="control-warning">Локальная модель работает на устройстве при наличии WebGPU. При первом запуске потребуется загрузка модели примерно на 1–2 ГБ. Текст дела не отправляется в AI API. На неподдерживаемых устройствах анализ не запустится.</p>}
           <div className="upload-row">
-            <label className="file-button">Загрузить документ<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
+            <label className="file-button">Загрузить документ<input type="file" disabled={running} accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
           </div>
-          <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
-          <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>\n          {modelProgress && providerMode === 'local' && <p className="muted">Загрузка локальной модели: {modelProgress}</p>}
+          <textarea value={text} disabled={running} onChange={(event) => { setText(event.target.value); setFileName(null); invalidateResult(); }} />
+          <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
+          {modelProgress && providerMode === 'local' && <p className="muted">Загрузка локальной модели: {modelProgress}</p>}
           {error && <div className="error-box">{error}</div>}
         </article>
 
