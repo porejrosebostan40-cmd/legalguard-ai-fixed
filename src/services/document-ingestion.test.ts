@@ -110,6 +110,11 @@ describe('document ingestion', () => {
     expect(result.text).toBe('Текст из DOCX\tчасть\nВторая строка\nТретья строка');
   });
 
+  it('rejects malformed DOCX archive data', async () => {
+    const file = new File(['not a zip archive'], 'broken.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    await expect(readTextDocument(file)).rejects.toThrow('корректного ZIP-каталога');
+  });
+
   it('combines multiple files with explicit, sanitized document boundaries', () => {
     const combined = combineDocuments([
       { name: 'verdict.txt', text: 'Текст приговора.', mimeType: 'text/plain' },
