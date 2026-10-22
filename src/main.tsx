@@ -70,9 +70,9 @@ function App() {
       <header>
         <div>
           <h1>LegalGuard AI</h1>
-          <p>Карманный адвокат · контролируемый юридический конвейер</p>
+          <p>Инструмент анализа судебных материалов · контролируемый конвейер</p>
         </div>
-        <span className="badge">MVP · БЕЗ КЛЮЧЕЙ В БРАУЗЕРЕ</span>
+        <span className="badge">MVP · БЕЗ ОБЯЗАТЕЛЬНЫХ API</span>
       </header>
 
       <section className="panel metadata">
@@ -89,6 +89,7 @@ function App() {
       <section className="grid">
         <article className="panel">
           <h2>Судебный материал</h2>
+          {providerMode === 'test' && <p className="control-warning">Тестовый режим не выполняет юридический анализ и не создаёт вымышленные основания. Для настоящего анализа нужен подключённый и проверенный провайдер.</p>}
           <div className="upload-row">
             <label className="file-button">Загрузить TXT<input type="file" accept=".txt,text/plain" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
@@ -113,7 +114,7 @@ function App() {
                 ))}
               </div>
               <div className={result.readyForSubmission ? 'result pass' : 'result block'}>
-                {result.readyForSubmission ? 'ГОТОВО К ПОДАЧЕ' : 'ПОДАЧА ЗАБЛОКИРОВАНА'}
+                {result.finalControl?.passed ? 'ЧЕРНОВИК СОЗДАН — ТРЕБУЕТ ПРОВЕРКИ' : 'НЕДОСТАТОЧНО ДАННЫХ / КОНТРОЛЬ НЕ ПРОЙДЕН'}
               </div>
             </>
           )}
