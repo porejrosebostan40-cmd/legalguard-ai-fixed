@@ -6,6 +6,7 @@ MODEL_PATH="${MODEL_PATH:-$HOME/models/model.gguf}"
 PORT="${PORT:-8080}"
 CTX_SIZE="${CTX_SIZE:-4096}"
 THREADS="${THREADS:-2}"
+MODEL_ALIAS="${MODEL_ALIAS:-local-model}"
 
 if [ ! -x "$LLAMA_SERVER" ]; then
   echo "Не найден llama-server: $LLAMA_SERVER" >&2
@@ -21,11 +22,12 @@ fi
 
 echo "Запуск локальной модели на 127.0.0.1:$PORT"
 echo "Модель: $MODEL_PATH"
-echo "Контекст: $CTX_SIZE; потоки CPU: $THREADS"
+echo "Контекст: $CTX_SIZE; потоки CPU: $THREADS; имя API: $MODEL_ALIAS"
 echo "Остановка: Ctrl+C"
 
 exec "$LLAMA_SERVER" \
   --model "$MODEL_PATH" \
+  --alias "$MODEL_ALIAS" \
   --host 127.0.0.1 \
   --port "$PORT" \
   --ctx-size "$CTX_SIZE" \
