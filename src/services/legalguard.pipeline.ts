@@ -10,6 +10,7 @@ import type {
 import { runFinalControl } from './final-control';
 import { validateArbiterCoverage } from './cross-stage-validation';
 import { splitDocumentIntoChunks } from './document-chunking';
+import { findSourceReference } from './source-attribution';
 
 function trace(
   code: string,
@@ -65,7 +66,11 @@ export class LegalGuardPipeline {
       }
       this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'arbiter' });
       const rawArbiterFindings = await this.providers.chatGPT.arbitrate(chunks[index], namespacedFindings);
-      arbiterFindings.push(...validateArbiterCoverage(namespacedFindings, rawArbiterFindings));
+      const coveredFindings = validateArbiterCoverage(namespacedFindings, rawArbiterFindings);
+      arbiterFindings.push(...coveredFindings.map((finding) => ({
+        ...finding,
+        source: findSourceReference(documentText, finding.sourceQuote ?? ''),
+      })));
       this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'chunk-complete' });
     }
 
