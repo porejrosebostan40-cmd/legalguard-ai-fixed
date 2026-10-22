@@ -82,50 +82,82 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
+function splitDocumentIntoChunks(text: string, maxChars = 4500, overlap = 300): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = Math.min(start + maxChars, text.length);
+    if (end < text.length) {
+      const lineBreak = text.lastIndexOf('\\n', end);
+      const space = text.lastIndexOf(' ', end);
+      const boundary = lineBreak > start + maxChars * 0.6
+        ? lineBreak
+        : space > start + maxChars * 0.6
+          ? space
+          : end;
+      end = boundary;
+    }
+    const chunk = text.slice(start, end).trim();
+    if (chunk) chunks.push(chunk);
+    if (end >= text.length) break;
+    start = Math.max(start + 1, end - overlap);
+  }
+  return chunks;
+}
+
 export function createLocalProviders(endpoint: string, modelName = 'local-model'): AIProviderSet {
   const url = endpoint.trim();
 
   return {
     deepSeek: {
       async analyze(documentText: string): Promise<DeepSeekFinding[]> {
-        const result = await completeJson<{ findings?: unknown }>(
-          url,
-          modelName,
-          [
-            'Ты первичный аналитик судебного материала. Верни только JSON вида {"findings":[...]}.',
-            'Используй только факты из переданного текста. Не придумывай факты, цитаты, номера страниц или нормы закона.',
-            'Каждая находка должна содержать id, claim, sourceQuote и confidence от 0 до 1; legalBasis допускается только если норма прямо указана в материале.',
-            'sourceQuote должен быть дословным непрерывным фрагментом исходного текста, включая исходную пунктуацию. Если подтверждающей цитаты нет, не включай находку.',
-          ].join(' '),
-          JSON.stringify({ documentText }),
-        );
+        const chunks = splitDocumentIntoChunks(documentText);
+        const allFindings: DeepSeekFinding[] = [];
 
-        if (!Array.isArray(result.findings)) {
-          throw new Error('Локальный аналитик не вернул массив findings.');
+        for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+          const chunkText = chunks[chunkIndex];
+          const result = await completeJson<{ findings?: unknown }>(
+            url,
+            modelName,
+            [
+              'Ты первичный аналитик судебного материала. Верни только JSON вида {"findings":[...]}.',
+              'Используй только факты из переданного фрагмента. Не придумывай факты, цитаты, номера страниц или нормы закона.',
+              'Каждая находка должна содержать id, claim, sourceQuote и confidence от 0 до 1; legalBasis допускается только если норма прямо указана в материале.',
+              'sourceQuote должен быть дословным непрерывным фрагментом переданного фрагмента, включая исходную пунктуацию. Если подтверждающей цитаты нет, не включай находку.',
+            ].join(' '),
+            JSON.stringify({ chunkNumber: chunkIndex + 1, totalChunks: chunks.length, chunkText }),
+          );
+
+          if (!Array.isArray(result.findings)) {
+            throw new Error(`Локальный аналитик не вернул массив findings для фрагмента ${chunkIndex + 1}.`);
+          }
+
+          result.findings.forEach((item, findingIndex) => {
+            if (
+              !isRecord(item) ||
+              typeof item.id !== 'string' ||
+              typeof item.claim !== 'string' ||
+              typeof item.sourceQuote !== 'string' ||
+              typeof item.confidence !== 'number' ||
+              !Number.isFinite(item.confidence) ||
+              item.confidence < 0 ||
+              item.confidence > 1 ||
+              (item.legalBasis !== undefined && !isStringArray(item.legalBasis))
+            ) {
+              throw new Error(`Локальный аналитик вернул некорректную находку №${findingIndex + 1} во фрагменте ${chunkIndex + 1}.`);
+            }
+
+            allFindings.push({
+              id: `C${String(chunkIndex + 1).padStart(3, '0')}-F${String(findingIndex + 1).padStart(3, '0')}`,
+              claim: item.claim,
+              sourceQuote: item.sourceQuote,
+              confidence: item.confidence,
+              ...(isStringArray(item.legalBasis) ? { legalBasis: item.legalBasis } : {}),
+            });
+          });
         }
 
-        return result.findings.map((item, index) => {
-          if (
-            !isRecord(item) ||
-            typeof item.id !== 'string' ||
-            typeof item.claim !== 'string' ||
-            typeof item.sourceQuote !== 'string' ||
-            typeof item.confidence !== 'number' ||
-            !Number.isFinite(item.confidence) ||
-            item.confidence < 0 ||
-            item.confidence > 1 ||
-            (item.legalBasis !== undefined && !isStringArray(item.legalBasis))
-          ) {
-            throw new Error(`Локальный аналитик вернул некорректную находку №${index + 1}.`);
-          }
-          return {
-            id: item.id,
-            claim: item.claim,
-            sourceQuote: item.sourceQuote,
-            confidence: item.confidence,
-            ...(isStringArray(item.legalBasis) ? { legalBasis: item.legalBasis } : {}),
-          };
-        });
+        return allFindings;
       },
     },
     chatGPT: {
