@@ -29,7 +29,7 @@ MVP для контролируемого анализа судебных акт
 
 ## Локальная модель на Android
 
-Инструкция по запуску на Android через Termux: [docs/local-model-android.md](docs/local-model-android.md). После сборки llama.cpp и размещения GGUF-модели `scripts/start-legalguard-android.sh` запускает модель и интерфейс вместе. Сам движок и файл модели не входят в репозиторий.
+Инструкция по запуску на Android через Termux: [docs/local-model-android.md](docs/local-model-android.md). `scripts/setup-legalguard-android.sh` подготавливает окружение и собирает llama.cpp; `scripts/start-legalguard-android.sh` запускает модель и интерфейс вместе. Сам движок и файл модели не входят в репозиторий.
 
 ## Локальная разработка
 
