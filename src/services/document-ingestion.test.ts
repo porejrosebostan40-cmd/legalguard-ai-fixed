@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { combineDocuments, normalizeDocumentText, readTextDocument } from './document-ingestion';
+import { combineDocuments, MAX_BATCH_BYTES, MAX_BATCH_FILES, normalizeDocumentText, readTextDocument, validateDocumentBatch } from './document-ingestion';
 
 const { pdfMock } = vi.hoisted(() => ({ pdfMock: { empty: false } }));
 
@@ -73,6 +73,18 @@ describe('document ingestion', () => {
     expect(combined).toContain('=== КОНЕЦ ДОКУМЕНТА: verdict.txt ===');
     expect(combined).toContain('=== НАЧАЛО ДОКУМЕНТА: appeal review.pdf ===');
     expect(combined).toContain('Текст апелляции.');
+  });
+
+  it('limits the number of uploaded documents', () => {
+    const files = Array.from({ length: MAX_BATCH_FILES + 1 }, (_, index) => ({ name: `file-${index}.txt`, size: 1 }));
+    expect(() => validateDocumentBatch(files)).toThrow('не более 10 документов');
+  });
+
+  it('limits the combined upload size', () => {
+    expect(() => validateDocumentBatch([
+      { name: 'a.pdf', size: MAX_BATCH_BYTES / 2 },
+      { name: 'b.pdf', size: MAX_BATCH_BYTES / 2 + 1 },
+    ])).toThrow('превышает 50 МБ');
   });
 
   it('rejects empty TXT files', async () => {
