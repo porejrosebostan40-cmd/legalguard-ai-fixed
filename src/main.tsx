@@ -10,7 +10,7 @@ import './styles.css';
 function App() {
   const [text, setText] = useState('Вставьте текст судебного акта для анализа.');
   const [fileName, setFileName] = useState<string | null>(null);
-  const complaintType: ComplaintType = 'кассационная';
+  const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
   const [loadingFile, setLoadingFile] = useState(false);
   const [providerMode, setProviderMode] = useState<'test' | 'local'>('test');
   const [localEndpoint, setLocalEndpoint] = useState('http://127.0.0.1:8080/v1/chat/completions');
@@ -97,12 +97,20 @@ function App() {
 
       <section className="panel metadata">
         <h2>Режим работы</h2>
-        <label className="mode-select">Источник ИИ
-          <select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local')}>
-            <option value="test">Демонстрационный тест</option>
-            <option value="local">Локальная модель</option>
-          </select>
-        </label>
+        <div className="settings-row">
+          <label>Вид жалобы
+            <select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}>
+              <option value="апелляционная">Апелляционная</option>
+              <option value="кассационная">Кассационная</option>
+            </select>
+          </label>
+          <label>Источник ИИ
+            <select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local')}>
+              <option value="test">Демонстрационный тест</option>
+              <option value="local">Локальная модель</option>
+            </select>
+          </label>
+        </div>
         {providerMode === 'local' && (
           <label className="local-endpoint">Адрес локального OpenAI-совместимого сервера
             <input value={localEndpoint} onChange={(event) => { setLocalEndpoint(event.target.value); setLocalStatus(null); }} placeholder="http://127.0.0.1:8080/v1/chat/completions" />
