@@ -11,6 +11,8 @@ header p, .muted { color: #969daa; margin: 6px 0 0; }
 .badge { border: 1px solid #3d434d; border-radius: 999px; padding: 6px 10px; font-size: 11px; color: #b9bec8; }
 .panel { background: #12151a; border: 1px solid #292e36; border-radius: 12px; padding: 18px; }
 .metadata { margin-bottom: 16px; }
+.local-endpoint { margin-top: 12px; max-width: 760px; }
+.local-endpoint .muted { font-size: 12px; }
 .fields { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 label { display: grid; gap: 6px; color: #aeb4bf; font-size: 12px; }
 input, select { width: 100%; min-width: 0; background: #0d0f13; color: #e7e9ee; border: 1px solid #303641; border-radius: 7px; padding: 9px; }
