@@ -1,5 +1,6 @@
 import type {
   ArbiterFinding,
+  CaseInfo,
   FinalControlResult,
   StrategyArgument,
 } from '../core/legalguard.types';
@@ -12,6 +13,7 @@ export function runFinalControl(
   documentText: string,
   findings: ArbiterFinding[],
   strategy: StrategyArgument[],
+  caseInfo?: CaseInfo,
 ): FinalControlResult {
   const blockingReasons: string[] = [];
   const warnings: string[] = [];
@@ -22,6 +24,19 @@ export function runFinalControl(
   if (!documentText.trim()) {
     blockingReasons.push('Исходный судебный материал пуст.');
   }
+  if (caseInfo) {
+    const requiredFields: Array<[string, string]> = [
+      ['номер дела', caseInfo.caseNumber],
+      ['наименование суда', caseInfo.courtName],
+      ['дата судебного акта', caseInfo.verdictDate],
+    ];
+    for (const [label, value] of requiredFields) {
+      if (typeof value !== 'string' || !value.trim() || value.trim() === '—') {
+        blockingReasons.push(`Не заполнено обязательное поле: ${label}.`);
+      }
+    }
+  }
+
   if (findings.length === 0) {
     blockingReasons.push('Не выявлено проверяемых оснований. Это не означает, что нарушений нет: требуется содержательный анализ документа.');
   }
