@@ -20,7 +20,7 @@ jobs:
         run: npm ci --legacy-peer-deps --no-audit --no-fund
       - name: Report resolved direct dependency versions
         run: npm ls --depth=0
-      - name: Audit dependencies for high and critical vulnerabilities
+      - name: Audit dependencies for moderate-or-higher vulnerabilities
         run: npm audit --audit-level=moderate
       - run: npm run build
       - run: npm test
