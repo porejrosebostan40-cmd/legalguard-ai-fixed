@@ -19,6 +19,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [modelProgress, setModelProgress] = useState<string | null>(null);
+  const [diagnosticMessage, setDiagnosticMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const handleProgress = (event: Event) => {
@@ -72,6 +73,22 @@ function App() {
     }
   }
 
+  async function selfTestLocalModel() {
+    setRunning(true);
+    setError(null);
+    setDiagnosticMessage('Проверка WebGPU, загрузки модели и генерации JSON…');
+    try {
+      const diagnostics = await import('./providers/local.providers');
+      const result = await diagnostics.runLocalModelSelfTest();
+      setDiagnosticMessage(`Самопроверка пройдена: ${result.modelId}. Это подтверждает запуск модели и JSON-режима, но не юридическую точность.`);
+    } catch (cause) {
+      setDiagnosticMessage('Самопроверка локальной модели не пройдена.');
+      setError(cause instanceof Error ? cause.message : 'Неизвестная ошибка локальной модели.');
+    } finally {
+      setRunning(false);
+    }
+  }
+
   async function copyDocument() {
     if (!result?.finalDocument) return;
     try {
@@ -115,6 +132,8 @@ function App() {
             {fileName && <span className="file-name">{fileName}</span>}
           </div>
           <textarea value={text} disabled={running} onChange={(event) => { setText(event.target.value); setFileName(null); invalidateResult(); }} />
+          {providerMode === 'local' && <button type="button" disabled={running} onClick={() => void selfTestLocalModel()}>Проверить локальный ИИ</button>}
+          {diagnosticMessage && providerMode === 'local' && <p className="muted">{diagnosticMessage}</p>}
           <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
           {modelProgress && providerMode === 'local' && <p className="muted">Загрузка локальной модели: {modelProgress}</p>}
           {error && <div className="error-box">{error}</div>}
