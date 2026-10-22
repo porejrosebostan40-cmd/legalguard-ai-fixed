@@ -89,7 +89,7 @@ describe('LegalGuard draft generation', () => {
     ].join('\n');
     const result = await new LegalGuardPipeline(providers()).run(multiDocumentText, caseInfo);
     expect(result.finalControl?.passed).toBe(false);
-    expect(result.finalControl?.blockingReasons.some((reason) => reason.includes('исходный файл цитаты'))).toBe(true);
+    expect(result.finalControl?.blockingReasons.some((reason) => reason.includes('ссылку на исходный документ'))).toBe(true);
     expect(result.finalDocument).toBeNull();
   });
 
