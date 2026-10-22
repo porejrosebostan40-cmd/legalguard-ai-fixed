@@ -95,19 +95,29 @@ export function runFinalControl(
       const quote = typeof finding.sourceQuote === 'string' ? finding.sourceQuote.trim() : '';
       if (!quote) {
         blockingReasons.push(`У принятого основания ${id} отсутствует точная цитата из исходного документа.`);
-      } else if (!normalizedDocument.includes(normalizeForComparison(quote))) {
-        blockingReasons.push(`Цитата основания ${id} не найдена в исходном документе; требуется ручная сверка.`);
+      } else {
+        const quoteWords = quote.split(/\\s+/).filter(Boolean);
+        if (quote.length < 25 || quoteWords.length < 5) {
+          blockingReasons.push(`Цитата основания ${id} слишком короткая для надёжной привязки к доказательству; требуется более полный фрагмент.`);
+        }
+        if (!normalizedDocument.includes(normalizeForComparison(quote))) {
+          blockingReasons.push(`Цитата основания ${id} не найдена в исходном документе; требуется ручная сверка.`);
+        }
       }
 
       if (typeof finding.reasoning !== 'string' || !finding.reasoning.trim()) {
         blockingReasons.push(`У принятого основания ${id} отсутствует обоснование.`);
       }
 
-      if (finding.source && normalizeForComparison(finding.source.quote) !== normalizeForComparison(quote)) {
-        blockingReasons.push(`Ссылка на источник основания ${id} не совпадает с цитатой, которую проверяет система.`);
-      }
-      if (hasDocumentBoundaryMarkers(documentText) && !isSourceReferenceGrounded(documentText, finding.source)) {
-        blockingReasons.push(`Для основания ${id} не удалось однозначно установить исходный файл цитаты; требуется ручная сверка.`);
+      if (!finding.source) {
+        blockingReasons.push(`Для основания ${id} отсутствует структурированная ссылка на исходный документ.`);
+      } else {
+        if (normalizeForComparison(finding.source.quote) !== normalizeForComparison(quote)) {
+          blockingReasons.push(`Ссылка на источник основания ${id} не совпадает с цитатой, которую проверяет система.`);
+        }
+        if (!isSourceReferenceGrounded(documentText, finding.source)) {
+          blockingReasons.push(`Для основания ${id} не удалось однозначно установить исходный файл цитаты; требуется ручная сверка.`);
+        }
       }
 
       const legalBases = Array.isArray(finding.legalBasis)
