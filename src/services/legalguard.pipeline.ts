@@ -1,11 +1,16 @@
 import type {
   AIProviderSet,
+  ArbiterFinding,
   CaseInfo,
+  DeepSeekFinding,
   LegalGuardResult,
   PipelineTraceEntry,
   StrategyArgument,
 } from '../core/legalguard.types';
 import { runFinalControl } from './final-control';
+import { validateArbiterCoverage } from './cross-stage-validation';
+import { splitDocumentIntoChunks } from './document-chunking';
+import { findSourceReference } from './source-attribution';
 
 function trace(
   code: string,
@@ -16,8 +21,17 @@ function trace(
   return { code, stage, status, message, timestamp: new Date().toISOString() };
 }
 
+export interface PipelineProgress {
+  currentChunk: number;
+  totalChunks: number;
+  stage: 'analyst' | 'arbiter' | 'chunk-complete' | 'complete';
+}
+
 export class LegalGuardPipeline {
-  constructor(private readonly providers: AIProviderSet) {}
+  constructor(
+    private readonly providers: AIProviderSet,
+    private readonly onProgress?: (progress: PipelineProgress) => void,
+  ) {}
 
   async run(documentText: string, caseInfo: CaseInfo): Promise<LegalGuardResult> {
     const runId = `LG-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -28,24 +42,54 @@ export class LegalGuardPipeline {
       return this.emptyResult(runId, pipelineTrace);
     }
 
-    pipelineTrace.push(trace('01 ДОКУМЕНТЫ OK', 'documents', 'ok', 'Материал принят.'));
+    const chunks = splitDocumentIntoChunks(documentText);
+    if (chunks.length === 0) {
+      pipelineTrace.push(trace('01 ДОКУМЕНТЫ ОШИБКА', 'documents', 'error', 'После нормализации в документе не осталось текста.'));
+      return this.emptyResult(runId, pipelineTrace);
+    }
+    pipelineTrace.push(trace('01 ДОКУМЕНТЫ OK', 'documents', 'ok', `Материал разделён на ${chunks.length} фрагментов для обработки в ограниченном контексте модели.`));
 
-    const findings = await this.providers.deepSeek.analyze(documentText);
+    const findings: DeepSeekFinding[] = [];
+    const arbiterFindings: ArbiterFinding[] = [];
+    for (let index = 0; index < chunks.length; index += 1) {
+      this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'analyst' });
+      const chunkFindings = await this.providers.deepSeek.analyze(chunks[index], caseInfo.complaintType);
+      const namespacedFindings = chunkFindings.map((finding) => ({
+        ...finding,
+        id: `C${index + 1}-${finding.id}`,
+      }));
+      findings.push(...namespacedFindings);
+
+      if (namespacedFindings.length === 0) {
+        this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'chunk-complete' });
+        continue;
+      }
+      this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'arbiter' });
+      const rawArbiterFindings = await this.providers.chatGPT.arbitrate(chunks[index], namespacedFindings, caseInfo.complaintType);
+      const coveredFindings = validateArbiterCoverage(namespacedFindings, rawArbiterFindings);
+      arbiterFindings.push(...coveredFindings.map((finding) => ({
+        ...finding,
+        source: findSourceReference(documentText, finding.sourceQuote ?? ''),
+      })));
+      this.onProgress?.({ currentChunk: index + 1, totalChunks: chunks.length, stage: 'chunk-complete' });
+    }
+
+    this.onProgress?.({ currentChunk: chunks.length, totalChunks: chunks.length, stage: 'complete' });
+
     pipelineTrace.push(trace(
       '02 АНАЛИЗ ЗАВЕРШЁН',
       'analyst',
       findings.length ? 'ok' : 'warning',
       findings.length
-        ? `Получено кандидатов на проверку: ${findings.length}. Каждый требует подтверждения источником.`
-        : 'Провайдер не выявил кандидатов. Это не подтверждает отсутствие нарушений.',
+        ? `Обработано фрагментов: ${chunks.length}; получено кандидатов на проверку: ${findings.length}. Каждый требует подтверждения источником.`
+        : `Обработано фрагментов: ${chunks.length}. Провайдер не выявил кандидатов. Это не подтверждает отсутствие нарушений.`,
     ));
 
-    const arbiterFindings = await this.providers.chatGPT.arbitrate(documentText, findings);
     pipelineTrace.push(trace(
       '03 ПРАВОВАЯ ОЦЕНКА',
       'arbiter',
       arbiterFindings.length ? 'ok' : 'warning',
-      `Оценено оснований: ${arbiterFindings.length}. Локальный режим использует три последовательных роли: аналитик, арбитр и критик. Автоматическая оценка не заменяет проверку юристом.`,
+      `Оценено оснований: ${arbiterFindings.length}. Локальный режим использует три последовательных роли на одной модели, а не независимые системы. Автоматическая оценка не заменяет проверку юристом.`,
     ));
 
     const accepted = arbiterFindings.filter((finding) => finding.status === 'accepted');
@@ -54,11 +98,12 @@ export class LegalGuardPipeline {
       position: index + 1,
       heading: finding.claim,
       argument: finding.reasoning,
-      requestedRelief: `Проверить довод в пределах ${caseInfo.complaintType} жалобы.`,
+      source: finding.source,
+      legalBasis: finding.legalBasis ?? [],
     }));
     pipelineTrace.push(trace('04 ПРОЕКТ СТРАТЕГИИ', 'strategist', strategy.length ? 'ok' : 'warning', `В проект стратегии включено оснований: ${strategy.length}.`));
 
-    const finalControl = runFinalControl(documentText, arbiterFindings, strategy);
+    const finalControl = runFinalControl(documentText, arbiterFindings, strategy, caseInfo);
     pipelineTrace.push(trace(
       '05 ФИНАЛЬНЫЙ КОНТРОЛЬ',
       'final-control',
@@ -95,14 +140,31 @@ export class LegalGuardPipeline {
   }
 
   private renderDocument(caseInfo: CaseInfo, strategy: StrategyArgument[]): string {
-    const title = caseInfo.complaintType === 'апелляционная'
-      ? 'АПЕЛЛЯЦИОННАЯ ЖАЛОБА'
-      : 'КАССАЦИОННАЯ ЖАЛОБА';
+    const isUdo = caseInfo.complaintType === 'ходатайство об УДО';
+    const title = isUdo
+      ? 'ПРОЕКТ ХОДАТАЙСТВА ОБ УДО — ЧЕРНОВИК'
+      : caseInfo.complaintType === 'апелляционная'
+        ? 'ПРОЕКТ АПЕЛЛЯЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК'
+        : 'ПРОЕКТ КАССАЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК';
+    const sectionHeading = isUdo ? 'ОБСТОЯТЕЛЬСТВА И ДОВОДЫ ХОДАТАЙСТВА (ПРОЕКТ)' : 'ОСНОВАНИЯ ЖАЛОБЫ (ПРОЕКТ)';
+    const courtLabel = isUdo ? 'Суд, связанный с приговором / исполнением наказания' : 'Суд, вынесший обжалуемый акт';
+    const missingData = isUdo
+      ? 'Документы о сроке наказания и зачёте. Расчёт учреждения о дате достижения требуемой части срока. Характеристика за весь период, поощрения и взыскания, сведения о труде и обучении. Данные о возмещении вреда и условиях после освобождения. Предыдущие постановления об отказе в УДО, если были. Приложения, дата и подпись.'
+      : 'Процессуальное положение и сведения о представителе. Адрес и контакты. Дата получения акта и данные для проверки срока обжалования. Перечень приложений и подтверждение направления копий, если требуется. Дата и подпись.';
+    const reliefInstruction = isUdo
+      ? 'Сформулируйте конкретную просьбу об УДО только после проверки расчёта срока, подсудности и приложенных материалов. Требуемую часть срока необходимо сверить отдельно.'
+      : 'Сформулируйте конкретное требование после проверки применимых норм, стадии процесса и полномочий суда. Не используйте общую формулировку без юридической проверки.';
     const body = strategy.map((item) => {
+      const sourceCitation = item.source
+        ? `\nЦитата из материала (файл: ${item.source.documentId}): «${item.source.quote}»`
+        : '\nИсточник цитаты не установлен автоматически; требуется ручная сверка исходного материала.';
+      const basis = item.legalBasis?.length
+        ? `\nПредполагаемая правовая основа (НЕ ПРОВЕРЕНА): ${item.legalBasis.join('; ')}. Проверьте официальный источник и редакцию на юридически значимую дату.`
+        : '\nПравовая основа не указана; довод требует отдельной юридической проверки.';
       const relief = item.requestedRelief ? `\nПросительная часть по доводу: ${item.requestedRelief}` : '';
-      return `${item.position}. ${item.heading}\n${item.argument}${relief}`;
+      return `${item.position}. ${item.heading}\n${item.argument}${sourceCitation}${basis}${relief}`;
     }).join('\n\n');
 
-    return `${title}\n\nДело: ${caseInfo.caseNumber}\nСудебный акт: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\nОСНОВАНИЯ ЖАЛОБЫ\n\n${body}\n\nПРОЕКТ СФОРМИРОВАН LegalGuard AI. Перед использованием необходимо проверить факты, правовые ссылки, процессуальные требования и сроки; автоматический контроль не подтверждает готовность к подаче.`;
+    return `${title}\n\nВ суд: ${caseInfo.recipientCourtName}\nЗаявитель / осуждённый: ${caseInfo.clientName}\nНомер дела: ${caseInfo.caseNumber}\n${courtLabel}: ${caseInfo.courtName}\nДата акта: ${caseInfo.verdictDate}\n\n${sectionHeading}\n\n${body}\n\nПРОСИТЕЛЬНАЯ ЧАСТЬ — НЕ СФОРМИРОВАНА\n${reliefInstruction}\n\nДАННЫЕ, КОТОРЫЕ НУЖНО ДОПОЛНИТЬ\n${missingData}\n\nИСТОЧНИКИ ДЛЯ РУЧНОЙ ПРОВЕРКИ ПРАВОВЫХ ССЫЛОК\nОфициальный интернет-портал правовой информации: https://pravo.gov.ru/\nПоиск официального опубликования: https://publication.pravo.gov.ru/search\nПортал Минюста России «Нормативные правовые акты в Российской Федерации»: https://pravo.minjust.ru/\n\nПРОЕКТ СФОРМИРОВАН LegalGuard AI. Это не готовый процессуальный документ. Проверьте факты, каждую цитату, правовые ссылки и редакции норм на юридически значимую дату, процессуальные требования, сроки, подсудность и просительную часть. Автоматический контроль не подтверждает готовность к подаче.`;
   }
 }

@@ -9,13 +9,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install --legacy-peer-deps --no-audit --no-fund
+          node-version: 22
+      - name: Install dependencies reproducibly
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - name: Report resolved direct dependency versions
+        run: npm ls --depth=0
+      - name: Audit dependencies for moderate-or-higher vulnerabilities
+        run: npm audit --audit-level=moderate
       - run: npm run build
-
+      - name: Verify GitHub Pages asset paths
+        run: |
+          test -f dist/index.html
+          grep -q 'src="/legalguard-ai-fixed/assets/' dist/index.html
+          grep -q 'href="/legalguard-ai-fixed/assets/' dist/index.html
+      - run: npm test
       # CI deliberately performs no external AI-provider requests.
       # Build verification must work without API keys or paid usage.
