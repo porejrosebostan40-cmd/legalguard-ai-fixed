@@ -4,6 +4,7 @@ import type {
   FinalControlResult,
   StrategyArgument,
 } from '../core/legalguard.types';
+import { hasDocumentBoundaryMarkers, isSourceReferenceGrounded } from './source-attribution';
 
 function isValidCourtDate(value: string): boolean {
   let year: number;
@@ -98,6 +99,10 @@ export function runFinalControl(
 
       if (typeof finding.reasoning !== 'string' || !finding.reasoning.trim()) {
         blockingReasons.push(`У принятого основания ${id} отсутствует обоснование.`);
+      }
+
+      if (hasDocumentBoundaryMarkers(documentText) && !isSourceReferenceGrounded(documentText, finding.source)) {
+        blockingReasons.push(`Для основания ${id} не удалось однозначно установить исходный файл цитаты; требуется ручная сверка.`);
       }
 
       const legalBases = Array.isArray(finding.legalBasis)
