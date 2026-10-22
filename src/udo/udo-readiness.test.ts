@@ -62,6 +62,11 @@ describe('UDO readiness checklist', () => {
     expect(result.completenessStatus).toBe('requires_verification');
   });
 
+  it('handles a restitution document marked as not applicable', () => {
+    const result = evaluateUdoReadiness({ ...completeIntake, restitutionProofStatus: 'not_applicable' });
+    expect(result.items.find((entry) => entry.id === 'restitution-proof')?.status).toBe('provided');
+  });
+
   it('exports a checklist report, not a petition or legal conclusion', () => {
     const report = buildUdoReadinessReport(completeIntake, evaluateUdoReadiness(completeIntake));
     expect(report).toContain('НЕ ПРОЦЕССУАЛЬНЫЙ ДОКУМЕНТ');
