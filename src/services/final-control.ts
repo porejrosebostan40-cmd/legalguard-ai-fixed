@@ -103,6 +103,9 @@ export function runFinalControl(
         blockingReasons.push(`У принятого основания ${id} отсутствует обоснование.`);
       }
 
+      if (finding.source && normalizeForComparison(finding.source.quote) !== normalizeForComparison(quote)) {
+        blockingReasons.push(`Ссылка на источник основания ${id} не совпадает с цитатой, которую проверяет система.`);
+      }
       if (hasDocumentBoundaryMarkers(documentText) && !isSourceReferenceGrounded(documentText, finding.source)) {
         blockingReasons.push(`Для основания ${id} не удалось однозначно установить исходный файл цитаты; требуется ручная сверка.`);
       }
