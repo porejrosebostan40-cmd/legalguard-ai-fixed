@@ -17,6 +17,7 @@ function App() {
   const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
   const [providerMode, setProviderMode] = useState<'test' | 'server' | 'local'>('test');
   const [localEndpoint, setLocalEndpoint] = useState('http://127.0.0.1:8080/v1/chat/completions');
+  const [localModel, setLocalModel] = useState('local-model');
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,10 +28,10 @@ function App() {
       providerMode === 'test'
         ? mockProviders
         : providerMode === 'local'
-          ? createLocalProviders(localEndpoint)
+          ? createLocalProviders(localEndpoint, localModel)
           : httpProviders,
     ),
-    [providerMode, localEndpoint],
+    [providerMode, localEndpoint, localModel],
   );
 
   async function loadFile(file: File | undefined) {
@@ -95,7 +96,8 @@ function App() {
         {providerMode === 'local' && (
           <label className="local-endpoint">Адрес локального OpenAI-совместимого сервера
             <input value={localEndpoint} onChange={(event) => setLocalEndpoint(event.target.value)} placeholder="http://127.0.0.1:8080/v1/chat/completions" />
-            <span className="muted">Модель должна работать локально. Этот режим не обращается к облачным API; сервер должен разрешать запросы браузера (CORS).</span>
+            <span className="muted">Допускаются только loopback-адреса. Модель должна работать локально; сервер должен разрешать запросы браузера (CORS).</span>
+            <span>Имя модели<input value={localModel} onChange={(event) => setLocalModel(event.target.value)} placeholder="local-model" /></span>
           </label>
         )}
       </section>
