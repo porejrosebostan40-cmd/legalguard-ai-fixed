@@ -2,18 +2,18 @@ import { StrictMode, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
+import { textReviewProviders } from './providers/text-review.providers';
 import { checkLocalModelConnection, createLocalProviders } from './providers/local.providers';
 import { readTextDocument } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import './styles.css';
 
 function App() {
-  const [text, setText] = useState('Вставьте текст судебного акта для анализа.');
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [text, setText] = useState('');
   const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
   const [loadingFile, setLoadingFile] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [providerMode, setProviderMode] = useState<'test' | 'local'>('test');
+  const [providerMode, setProviderMode] = useState<'text' | 'test' | 'local'>('text');
   const [localEndpoint, setLocalEndpoint] = useState('http://127.0.0.1:8080/v1/chat/completions');
   const [localModel, setLocalModel] = useState('local-model');
   const [checkingLocal, setCheckingLocal] = useState(false);
@@ -25,7 +25,7 @@ function App() {
 
   const pipeline = useMemo(
     () => new LegalGuardPipeline(
-      providerMode === 'test' ? mockProviders : createLocalProviders(localEndpoint, localModel),
+      providerMode === 'test' ? mockProviders : providerMode === 'text' ? textReviewProviders : createLocalProviders(localEndpoint, localModel),
     ),
     [providerMode, localEndpoint, localModel],
   );
@@ -51,7 +51,6 @@ function App() {
     try {
       const document = await readTextDocument(file);
       setText(document.text);
-      setFileName(document.name);
       setUploadStatus(`Загружен: ${document.name} · извлечено ${document.text.length.toLocaleString('ru-RU')} символов`);
       setResult(null);
     } catch (cause) {
@@ -64,6 +63,16 @@ function App() {
   }
 
   async function run() {
+    if (text.trim().length < 100) {
+      setError('Вставьте полный текст судебного акта (не менее 100 символов) или загрузите TXT, текстовый PDF либо DOCX.');
+      setResult(null);
+      return;
+    }
+    if (providerMode === 'test') {
+      setError('Выбран демонстрационный режим. Он не анализирует документ. Переключите источник ИИ на «Проверка текста без ИИ» или «Локальная модель».');
+      setResult(null);
+      return;
+    }
     setRunning(true);
     setError(null);
     setCopied(false);
@@ -111,8 +120,9 @@ function App() {
           </label>
           <label>Источник ИИ
             <select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local')}>
-              <option value="test">Демонстрационный тест</option>
+              <option value="text">Проверка текста без ИИ</option>
               <option value="local">Локальная модель</option>
+              <option value="test">Демонстрационный тест</option>
             </select>
           </label>
         </div>
@@ -125,7 +135,8 @@ function App() {
             {localStatus && <p className={`connection-status ${localStatus.kind}`}>{localStatus.message}</p>}
           </label>
         )}
-        {providerMode === 'test' && <p className="mode-note">Демонстрационный режим использует заранее заданные примеры. Он не анализирует ваш документ как реальная модель.</p>}
+        {providerMode === 'text' && <p className="mode-note">Локальная проверка ищет в тексте судебного акта фрагменты по заданным признакам и показывает точные цитаты для ручной проверки. Это не ИИ-анализ и не заключение о нарушении закона. Сканированные PDF без текстового слоя не поддерживаются.</p>}
+        {providerMode === 'test' && <p className="mode-note">Демонстрационный режим показывает заранее заданные примеры и не анализирует ваш документ.</p>}
       </section>
 
       <section className="grid">
@@ -135,7 +146,7 @@ function App() {
             <label className="file-button">{loadingFile ? 'Чтение файла…' : 'Выбрать судебный документ (TXT / PDF / DOCX)'}<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { const input = event.currentTarget; const file = input.files?.[0]; input.value = ''; if (!file) { setUploadStatus('Файл не выбран.'); return; } void loadFile(file); }} /></label>
             {uploadStatus && <span className="file-name" role="status">{uploadStatus}</span>}
           </div>
-          <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
+          <textarea value={text} onChange={(event) => { setText(event.target.value); setResult(null); }} />
           <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
           {error && <div className="error-box">{error}</div>}
         </article>
