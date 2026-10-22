@@ -1,13 +1,13 @@
-import { CreateMLCEngine, type MLCEngine } from '@mlc-ai/web-llm';
+import { CreateWebWorkerMLCEngine, type MLCEngineInterface } from '@mlc-ai/web-llm';
 import type { AIProviderSet, ArbiterFinding, DeepSeekFinding } from '../core/legalguard.types';
 import { validateAnalystFindings, validateArbiterFindings, validateCriticReviews } from '../services/provider-validation';
 
 const MODEL_ID = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
-let enginePromise: Promise<MLCEngine> | null = null;
+let enginePromise: Promise<MLCEngineInterface> | null = null;
 
 type WebGPUApi = { requestAdapter: () => Promise<unknown | null> };
 
-function getEngine(): Promise<MLCEngine> {
+function getEngine(): Promise<MLCEngineInterface> {
   const gpu = (navigator as Navigator & { gpu?: WebGPUApi }).gpu;
   if (!gpu || typeof gpu.requestAdapter !== 'function') {
     throw new Error('На этом браузере или устройстве WebGPU недоступен. Локальная модель не может запуститься. Используйте совместимое устройство; автоматической отправки дела в облако не будет.');
@@ -18,13 +18,15 @@ function getEngine(): Promise<MLCEngine> {
       if (!adapter) {
         throw new Error('Браузер сообщает о WebGPU, но совместимый GPU-адаптер не найден. Загрузка модели остановлена; текст дела не отправляется в облако.');
       }
-      return CreateMLCEngine(MODEL_ID, {
-        initProgressCallback: (report) => {
+      return CreateWebWorkerMLCEngine(
+        new Worker(new URL('./local-model.worker.ts', import.meta.url), { type: 'module' }),
+        MODEL_ID,
+        { initProgressCallback: (report) => {
           window.dispatchEvent(new CustomEvent('legalguard:model-progress', {
             detail: { text: report.text, progress: report.progress },
           }));
-        },
-      });
+        } },
+      );
     })().catch((error: unknown) => {
       enginePromise = null;
       if (error instanceof Error && error.message.includes('GPU-адаптер')) throw error;
