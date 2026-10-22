@@ -6,6 +6,7 @@ import { combineDocuments, readTextDocument, validateDocumentBatch } from './ser
 import type { DocumentInput } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import { areAllAcceptedFindingsReviewed } from './services/manual-review';
+import { validateCaseInfo } from './services/case-info-validation';
 import './styles.css';
 
 function App() {
@@ -64,6 +65,24 @@ function App() {
   }
 
   async function run() {
+    const caseInfo = {
+      caseNumber: caseNumber || '—',
+      recipientCourtName: recipientCourtName || '—',
+      clientName: clientName || '—',
+      courtName: courtName || '—',
+      verdictDate: verdictDate || '—',
+      complaintType,
+    };
+    const metadataErrors = validateCaseInfo(caseInfo);
+    if (!text.trim() || metadataErrors.length > 0) {
+      setResult(null);
+      setManuallyReviewedFindingIds([]);
+      setCopied(false);
+      setAnalysisProgress(null);
+      setError(!text.trim() ? 'Добавьте текст судебного материала перед запуском анализа.' : metadataErrors.join(' '));
+      return;
+    }
+
     setRunning(true);
     setError(null);
     setCopied(false);
@@ -84,14 +103,7 @@ function App() {
               : 'Анализ фрагментов завершён';
         setAnalysisProgress(`${stageLabel}: ${currentChunk} из ${totalChunks}`);
       });
-      const next = await pipeline.run(text, {
-        caseNumber: caseNumber || '—',
-        recipientCourtName: recipientCourtName || '—',
-        clientName: clientName || '—',
-        courtName: courtName || '—',
-        verdictDate: verdictDate || '—',
-        complaintType,
-      });
+      const next = await pipeline.run(text, caseInfo);
       setResult(next);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Неизвестная ошибка провайдера.');
