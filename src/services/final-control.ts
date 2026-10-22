@@ -9,8 +9,8 @@ function isValidCourtDate(value: string): boolean {
   let year: number;
   let month: number;
   let day: number;
-  const dmy = /^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/.exec(value);
-  const iso = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value);
+  const dmy = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value);
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (dmy) {
     day = Number(dmy[1]);
     month = Number(dmy[2]);
@@ -27,7 +27,7 @@ function isValidCourtDate(value: string): boolean {
 }
 
 function normalizeForComparison(value: string): string {
-  return value.replace(/\\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
+  return value.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
 }
 
 export function runFinalControl(
