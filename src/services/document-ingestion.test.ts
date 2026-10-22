@@ -27,13 +27,13 @@ vi.mock('pdfjs-dist', () => ({
   getDocument: () => ({
     promise: Promise.resolve({
       numPages: pdfMock.numPages,
-      destroy: async () => {},
       getPage: async () => ({
         getTextContent: async () => ({
           items: pdfMock.empty ? [] : [{ str: 'Текст из PDF' }],
         }),
       }),
     }),
+    destroy: async () => {},
   }),
 }));
 
