@@ -76,8 +76,9 @@ const UDO_CRITIC_PROMPT = `Критически проверь доводы по
 
 export const localProviders: AIProviderSet = {
   deepSeek: {
-    async analyze(documentText: string): Promise<DeepSeekFinding[]> {
-      const result = await askJson<{ findings: unknown }>(ANALYST_PROMPT, JSON.stringify({ documentText }));
+    async analyze(documentText: string, complaintType?: ComplaintType): Promise<DeepSeekFinding[]> {
+      const prompt = complaintType === 'ходатайство об УДО' ? UDO_ANALYST_PROMPT : ANALYST_PROMPT;
+      const result = await askJson<{ findings: unknown }>(prompt, JSON.stringify({ documentText }));
       return validateAnalystFindings(result.findings);
     },
   },
