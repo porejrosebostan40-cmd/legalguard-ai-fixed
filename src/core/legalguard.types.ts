@@ -1,4 +1,4 @@
-export type ComplaintType = 'апелляционная' | 'кассационная';
+export type ComplaintType = 'апелляционная' | 'кассационная' | 'ходатайство об УДО';
 export type FindingStatus = 'pending' | 'accepted' | 'rejected' | 'needs_review';
 export type LegalSignificance = 'high' | 'medium' | 'low' | 'none';
 
@@ -74,11 +74,11 @@ export interface LegalGuardResult {
 }
 
 export interface DeepSeekAnalyzer {
-  analyze(documentText: string): Promise<DeepSeekFinding[]>;
+  analyze(documentText: string, complaintType?: ComplaintType): Promise<DeepSeekFinding[]>;
 }
 
 export interface ChatGPTArbiter {
-  arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]>;
+  arbitrate(documentText: string, findings: DeepSeekFinding[], complaintType?: ComplaintType): Promise<ArbiterFinding[]>;
 }
 
 export interface AIProviderSet {
