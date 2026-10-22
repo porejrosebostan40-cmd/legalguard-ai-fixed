@@ -21,12 +21,12 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 }
 
 export const httpProviders: AIProviderSet = {
-  deepSeek: {
+  analyst: {
     analyze(documentText: string): Promise<DeepSeekFinding[]> {
       return postJson('/api/deepseek/analyze', { documentText });
     },
   },
-  chatGPT: {
+  arbiter: {
     arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
       return postJson('/api/chatgpt/arbitrate', { documentText, findings });
     },
