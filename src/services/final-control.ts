@@ -9,7 +9,9 @@ export function runFinalControl(
   strategy: StrategyArgument[],
 ): FinalControlResult {
   const blockingReasons: string[] = [];
-  const warnings: string[] = [];
+  const warnings: string[] = [
+    'Проверена только внутренняя согласованность данных. Фактическая точность цитат, применимость норм, сроки и процессуальные требования требуют отдельной юридической проверки.',
+  ];
   const checkedFindingIds = findings.map((finding) => finding.id);
   const knownIds = new Set(checkedFindingIds);
   const usedIds = new Set<string>();
