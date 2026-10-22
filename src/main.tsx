@@ -91,6 +91,24 @@ function App() {
     }
   }
 
+  function downloadDocument() {
+    if (!result?.finalDocument) return;
+    try {
+      const blob = new Blob([result.finalDocument], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const safeCaseNumber = caseNumber.trim().replace(/[^0-9a-zа-яё._-]+/giu, '_') || 'draft';
+      link.href = url;
+      link.download = `LegalGuard-${safeCaseNumber}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Не удалось сохранить файл. Попробуйте скопировать текст проекта.');
+    }
+  }
+
   async function copyDocument() {
     if (!result?.finalDocument) return;
     try {
@@ -187,7 +205,7 @@ function App() {
         <section className="panel document-preview">
           <div className="document-heading">
             <h2>Сформированный документ</h2>
-            <button type="button" disabled={running} onClick={() => void copyDocument()}>{copied ? 'Скопировано' : 'Копировать'}</button>
+            <button type="button" disabled={running} onClick={() => void copyDocument()}>{copied ? 'Скопировано' : 'Копировать'}</button><button type="button" disabled={running} onClick={downloadDocument}>Скачать TXT</button>
           </div>
           <pre>{result.finalDocument}</pre>
         </section>
