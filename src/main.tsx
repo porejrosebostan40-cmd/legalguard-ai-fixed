@@ -10,10 +10,8 @@ import './styles.css';
 function App() {
   const [text, setText] = useState('Вставьте текст судебного акта для анализа.');
   const [fileName, setFileName] = useState<string | null>(null);
-  const [caseNumber, setCaseNumber] = useState('');
-  const [courtName, setCourtName] = useState('');
-  const [verdictDate, setVerdictDate] = useState('');
-  const [complaintType, setComplaintType] = useState<ComplaintType>('кассационная');
+  const complaintType: ComplaintType = 'кассационная';
+  const [loadingFile, setLoadingFile] = useState(false);
   const [providerMode, setProviderMode] = useState<'test' | 'local'>('test');
   const [localEndpoint, setLocalEndpoint] = useState('http://127.0.0.1:8080/v1/chat/completions');
   const [localModel, setLocalModel] = useState('local-model');
@@ -47,6 +45,7 @@ function App() {
   async function loadFile(file: File | undefined) {
     if (!file) return;
     setError(null);
+    setLoadingFile(true);
     try {
       const document = await readTextDocument(file);
       setText(document.text);
@@ -54,6 +53,8 @@ function App() {
       setResult(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Не удалось прочитать файл.');
+    } finally {
+      setLoadingFile(false);
     }
   }
 
@@ -63,9 +64,9 @@ function App() {
     setCopied(false);
     try {
       const next = await pipeline.run(text, {
-        caseNumber: caseNumber || '—',
-        courtName: courtName || '—',
-        verdictDate: verdictDate || '—',
+        caseNumber: '—',
+        courtName: '—',
+        verdictDate: '—',
         clientName: '—',
         complaintType,
       });
@@ -95,18 +96,17 @@ function App() {
       </header>
 
       <section className="panel metadata">
-        <h2>Данные дела</h2>
-        <div className="fields">
-          <label>Номер дела<input value={caseNumber} onChange={(event) => setCaseNumber(event.target.value)} placeholder="№ дела" /></label>
-          <label>Суд<input value={courtName} onChange={(event) => setCourtName(event.target.value)} placeholder="Наименование суда" /></label>
-          <label>Дата акта<input value={verdictDate} onChange={(event) => setVerdictDate(event.target.value)} placeholder="ДД.ММ.ГГГГ" /></label>
-          <label>Вид жалобы<select value={complaintType} onChange={(event) => setComplaintType(event.target.value as ComplaintType)}><option value="апелляционная">Апелляционная</option><option value="кассационная">Кассационная</option></select></label>
-          <label>Источник ИИ<select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local')}><option value="test">Демонстрационный тест</option><option value="local">Локальная модель</option></select></label>
-        </div>
+        <h2>Режим работы</h2>
+        <label className="mode-select">Источник ИИ
+          <select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'test' | 'local')}>
+            <option value="test">Демонстрационный тест</option>
+            <option value="local">Локальная модель</option>
+          </select>
+        </label>
         {providerMode === 'local' && (
           <label className="local-endpoint">Адрес локального OpenAI-совместимого сервера
             <input value={localEndpoint} onChange={(event) => { setLocalEndpoint(event.target.value); setLocalStatus(null); }} placeholder="http://127.0.0.1:8080/v1/chat/completions" />
-            <span className="muted">Допускаются только loopback-адреса. Модель должна работать локально; сервер должен разрешать запросы браузера (CORS).</span>
+            <span className="muted">Модель должна работать локально, а сервер — разрешать запросы браузера (CORS).</span>
             <span>Имя модели<input value={localModel} onChange={(event) => { setLocalModel(event.target.value); setLocalStatus(null); }} placeholder="local-model" /></span>
             <button type="button" disabled={checkingLocal} onClick={() => void checkLocalConnection()}>{checkingLocal ? 'Проверка…' : 'Проверить подключение'}</button>
             {localStatus && <p className={`connection-status ${localStatus.kind}`}>{localStatus.message}</p>}
@@ -119,8 +119,8 @@ function App() {
         <article className="panel">
           <h2>Судебный материал</h2>
           <div className="upload-row">
-            <label className="file-button">Загрузить TXT / PDF / DOCX<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => void loadFile(event.target.files?.[0])} /></label>
-            {fileName && <span className="file-name">{fileName}</span>}
+            <label className="file-button">{loadingFile ? 'Чтение файла…' : 'Выбрать судебный документ (TXT / PDF / DOCX)'}<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { const input = event.currentTarget; const file = input.files?.[0]; input.value = ''; void loadFile(file); }} /></label>
+            {fileName && <span className="file-name">Загружен: {fileName}</span>}
           </div>
           <textarea value={text} onChange={(event) => { setText(event.target.value); setFileName(null); }} />
           <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
