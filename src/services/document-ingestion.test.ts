@@ -102,7 +102,7 @@ describe('document ingestion', () => {
   });
 
   it('extracts text from DOCX files', async () => {
-    const file = new File(['docx bytes'], 'decision.docx', {
+    const file = new File([makeDocxZip()], 'decision.docx', {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
     const result = await readTextDocument(file);
