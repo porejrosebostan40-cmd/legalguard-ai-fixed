@@ -65,6 +65,8 @@
 
 ## Проверки
 
+CI запускает `npm audit --audit-level=high` до сборки; high/critical advisories блокируют успешный pipeline.
+
 `npm install --legacy-peer-deps`
 
 `npm run build`
