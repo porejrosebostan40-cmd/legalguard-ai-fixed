@@ -134,6 +134,28 @@ describe('runFinalControl', () => {
     expect(result.blockingReasons.some((reason) => reason.includes('не совпадает с цитатой'))).toBe(true);
   });
 
+  it('blocks a finding marked as having no legal significance', () => {
+    const result = runFinalControl(documentText, [acceptedFinding({ legalSignificance: 'none' })], [strategy()]);
+    expect(result.passed).toBe(false);
+    expect(result.blockingReasons.some((reason) => reason.includes('не имеющим юридической значимости'))).toBe(true);
+  });
+
+  it('blocks an unknown legal-significance value', () => {
+    const result = runFinalControl(
+      documentText,
+      [acceptedFinding({ legalSignificance: 'critical' as unknown as ArbiterFinding['legalSignificance'] })],
+      [strategy()],
+    );
+    expect(result.passed).toBe(false);
+    expect(result.blockingReasons.some((reason) => reason.includes('неизвестная юридическая значимость'))).toBe(true);
+  });
+
+  it('warns when an accepted finding has low model-reported confidence', () => {
+    const result = runFinalControl(documentText, [acceptedFinding({ confidence: 0.3 })], [strategy()]);
+    expect(result.passed).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('низкая заявленная моделью уверенность'))).toBe(true);
+  });
+
   it('blocks empty source documents', () => {
     const result = runFinalControl('  ', [acceptedFinding()], [strategy()]);
     expect(result.passed).toBe(false);
