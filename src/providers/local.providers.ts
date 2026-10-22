@@ -68,7 +68,7 @@ export const localProviders: AIProviderSet = {
 
       const reviews = await askJson<{ reviews: unknown }>(
         CRITIC_PROMPT,
-        JSON.stringify({ documentText, findings: result.findings }),
+        JSON.stringify({ documentText, findings: arbiterFindings }),
       );
       const validatedReviews = validateCriticReviews(reviews.reviews);
       const knownFindingIds = new Set(arbiterFindings.map((finding) => finding.id));
