@@ -84,7 +84,6 @@ function App() {
         clientName: clientName || '—',
         courtName: courtName || '—',
         verdictDate: verdictDate || '—',
-        clientName: '—',
         complaintType,
       });
       setResult(next);
