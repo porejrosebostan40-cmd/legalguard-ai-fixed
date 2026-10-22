@@ -25,8 +25,11 @@ export function validateArbiterCoverage(
     const candidate = candidateById.get(finding.id);
     const originalQuote = candidate?.sourceQuote?.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
     const reviewedQuote = finding.sourceQuote?.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
-    if (originalQuote && originalQuote !== reviewedQuote) {
-      throw new Error(`Арбитр изменил цитату-основание ${finding.id}. Источник должен быть сверен заново; конвейер остановлен.`);
+    if (!originalQuote) {
+      throw new Error(`Аналитик не указал точную цитату для основания ${finding.id}; конвейер остановлен до арбитража.`);
+    }
+    if (!reviewedQuote || originalQuote !== reviewedQuote) {
+      throw new Error(`Арбитр изменил или удалил цитату-основание ${finding.id}. Источник должен быть сверен заново; конвейер остановлен.`);
     }
   }
 
