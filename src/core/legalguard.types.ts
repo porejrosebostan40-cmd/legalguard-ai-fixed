@@ -38,6 +38,7 @@ export interface StrategyArgument {
   position: number;
   heading: string;
   argument: string;
+  legalBasis?: string[];
   requestedRelief?: string;
 }
 
