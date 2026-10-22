@@ -1,5 +1,5 @@
 import { CreateWebWorkerMLCEngine, type MLCEngineInterface } from '@mlc-ai/web-llm';
-import type { AIProviderSet, ArbiterFinding, DeepSeekFinding } from '../core/legalguard.types';
+import type { AIProviderSet, ArbiterFinding, ComplaintType, DeepSeekFinding } from '../core/legalguard.types';
 import { validateAnalystFindings, validateArbiterFindings, validateCriticReviews } from '../services/provider-validation';
 
 const MODEL_ID = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
