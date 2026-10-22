@@ -58,10 +58,14 @@ export function runFinalControl(
       blockingReasons.push(`Основание ${finding.id} не прошло окончательное решение Арбитра.`);
     }
     if (finding.status === 'accepted') {
-      const quote = finding.source?.quote || finding.sourceQuote;
-      if (!quote?.trim()) {
-        blockingReasons.push(`Принятое основание ${finding.id} не содержит проверяемой цитаты из исходного материала.`);
-      } else if (!sourceText.includes(normalizeForQuoteMatch(quote))) {
+      const primaryFinding = findings.find((item) => item.id === finding.id);
+      const primaryQuote = primaryFinding?.source?.quote || primaryFinding?.sourceQuote;
+      const arbiterQuote = finding.source?.quote || finding.sourceQuote;
+      if (!primaryQuote?.trim()) {
+        blockingReasons.push(`Принятое основание ${finding.id} не содержит проверяемой цитаты в результате первичного анализа.`);
+      } else if (arbiterQuote && normalizeForQuoteMatch(arbiterQuote) !== normalizeForQuoteMatch(primaryQuote)) {
+        blockingReasons.push(`Арбитр изменил исходную цитату основания ${finding.id}; требуется проверка.`);
+      } else if (!sourceText.includes(normalizeForQuoteMatch(primaryQuote))) {
         blockingReasons.push(`Цитата основания ${finding.id} не найдена в исходном тексте; основание нельзя считать подтверждённым.`);
       }
     }
