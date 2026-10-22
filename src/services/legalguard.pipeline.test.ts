@@ -61,6 +61,26 @@ describe('LegalGuard draft generation', () => {
     expect(result.readyForSubmission).toBe(false);
   });
 
+  it('renders UDO-specific title, checklist, and caution instead of a generic cassation draft', async () => {
+    const udoCase: CaseInfo = { ...caseInfo, complaintType: 'ходатайство об УДО' };
+    const result = await new LegalGuardPipeline(providers()).run(documentText, udoCase);
+    expect(result.finalControl?.passed).toBe(true);
+    expect(result.finalDocument).toContain('ПРОЕКТ ХОДАТАЙСТВА ОБ УДО — ЧЕРНОВИК');
+    expect(result.finalDocument).toContain('ОБСТОЯТЕЛЬСТВА И ДОВОДЫ ХОДАТАЙСТВА (ПРОЕКТ)');
+    expect(result.finalDocument).toContain('Документы о сроке наказания и зачёте');
+    expect(result.finalDocument).toContain('Сформулируйте конкретную просьбу об УДО только после проверки расчёта срока');
+    expect(result.finalDocument).not.toContain('ПРОЕКТ КАССАЦИОННОЙ ЖАЛОБЫ');
+    expect(result.readyForSubmission).toBe(false);
+  });
+
+  it('renders appeal-specific heading for an appellate complaint', async () => {
+    const appealCase: CaseInfo = { ...caseInfo, complaintType: 'апелляционная' };
+    const result = await new LegalGuardPipeline(providers()).run(documentText, appealCase);
+    expect(result.finalDocument).toContain('ПРОЕКТ АПЕЛЛЯЦИОННОЙ ЖАЛОБЫ — ЧЕРНОВИК');
+    expect(result.finalDocument).toContain('ОСНОВАНИЯ ЖАЛОБЫ (ПРОЕКТ)');
+    expect(result.finalDocument).toContain('Сформулируйте конкретное требование после проверки применимых норм');
+  });
+
   it('attributes a quotation to the unique uploaded source file', async () => {
     const multiDocumentText = [
       '=== НАЧАЛО ДОКУМЕНТА: decision.txt ===',
