@@ -11,9 +11,17 @@ function isValidCourtDate(value: string): boolean {
   let day: number;
   const dmy = /^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/.exec(value);
   const iso = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value);
-  if (dmy) [, day, month, year] = dmy.map(Number) as unknown as [string, number, number, number];
-  else if (iso) [, year, month, day] = iso.map(Number) as unknown as [string, number, number, number];
-  else return false;
+  if (dmy) {
+    day = Number(dmy[1]);
+    month = Number(dmy[2]);
+    year = Number(dmy[3]);
+  } else if (iso) {
+    year = Number(iso[1]);
+    month = Number(iso[2]);
+    day = Number(iso[3]);
+  } else {
+    return false;
+  }
   const date = new Date(year, month - 1, day);
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }
