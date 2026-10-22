@@ -162,25 +162,40 @@ export function createLocalProviders(endpoint: string, modelName = 'local-model'
     },
     arbiter: {
       async arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
-        const result = await completeJson<{ decisions?: unknown }>(
-          url,
-          modelName,
-          [
-            'Ты независимый юридический Арбитр. Верни только JSON вида {"decisions":[...]}.',
-            'Для каждого переданного id верни ровно одно решение: accepted, rejected или needs_review.',
-            'Принимай основание только если sourceQuote дословно подтверждается исходным текстом и claim логически следует из цитаты.',
-            'Не выдумывай правовые нормы и судебную практику. Если правовая значимость не может быть установлена по предоставленным данным, используй needs_review.',
-            'Для каждого решения укажи id, status, legalSignificance (high, medium, low или none), reasoning. Не меняй и не создавай id.',
-          ].join(' '),
-          JSON.stringify({ documentText, findings }),
-        );
+        const allDecisions: unknown[] = [];
+        const batchSize = 8;
 
-        if (!Array.isArray(result.decisions)) {
-          throw new Error('Локальный Арбитр не вернул массив decisions.');
+        for (let offset = 0; offset < findings.length; offset += batchSize) {
+          const batch = findings.slice(offset, offset + batchSize).map((finding) => {
+            const quote = finding.source?.quote || finding.sourceQuote || '';
+            const quoteIndex = quote ? documentText.indexOf(quote) : -1;
+            const context = quoteIndex >= 0
+              ? documentText.slice(Math.max(0, quoteIndex - 600), Math.min(documentText.length, quoteIndex + quote.length + 600))
+              : quote;
+            return { ...finding, sourceContext: context };
+          });
+
+          const result = await completeJson<{ decisions?: unknown }>(
+            url,
+            modelName,
+            [
+              'Ты независимый юридический Арбитр. Верни только JSON вида {"decisions":[...]}.',
+              'Для каждого переданного id верни ровно одно решение: accepted, rejected или needs_review.',
+              'Принимай основание только если claim логически следует из sourceQuote и sourceContext.',
+              'Не выдумывай правовые нормы и судебную практику. Если правовая значимость не может быть установлена по предоставленным данным, используй needs_review.',
+              'Для каждого решения укажи id, status, legalSignificance (high, medium, low или none), reasoning. Не меняй и не создавай id.',
+            ].join(' '),
+            JSON.stringify({ findings: batch }),
+          );
+
+          if (!Array.isArray(result.decisions)) {
+            throw new Error(`Локальный Арбитр не вернул массив decisions для пакета ${Math.floor(offset / batchSize) + 1}.`);
+          }
+          allDecisions.push(...result.decisions);
         }
 
         const decisions = new Map<string, Record<string, unknown>>();
-        for (const item of result.decisions) {
+        for (const item of allDecisions) {
           if (!isRecord(item) || typeof item.id !== 'string' || decisions.has(item.id)) {
             throw new Error('Локальный Арбитр вернул решение с некорректным или повторяющимся id.');
           }
