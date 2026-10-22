@@ -18,8 +18,13 @@ vi.mock('pdfjs-dist', () => ({
 }));
 
 vi.mock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({ default: '/worker.js' }));
-vi.mock('mammoth/mammoth.browser', () => ({
-  extractRawText: async () => ({ value: 'Текст из DOCX', messages: [] }),
+vi.mock('fflate', () => ({
+  unzipSync: () => ({
+    'word/document.xml': new TextEncoder().encode(
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Текст из DOCX</w:t></w:r></w:p></w:body></w:document>',
+    ),
+  }),
+  strFromU8: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
 }));
 
 describe('document ingestion', () => {
