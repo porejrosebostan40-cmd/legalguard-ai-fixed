@@ -14,7 +14,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - name: Install dependencies reproducibly when lockfile exists
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --legacy-peer-deps --no-audit --no-fund
+          else
+            npm install --legacy-peer-deps --no-audit --no-fund
+          fi
       - name: Report resolved direct dependency versions
         run: npm ls --depth=0
       - run: npm run build
