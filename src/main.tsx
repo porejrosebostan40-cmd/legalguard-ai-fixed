@@ -118,7 +118,7 @@ function App() {
               <option value="кассационная">Кассационная</option>
             </select>
           </label>
-          <label>Источник ИИ
+          <label>Источник анализа
             <select value={providerMode} onChange={(event) => setProviderMode(event.target.value as 'text' | 'test' | 'local')}>
               <option value="text">Проверка текста без ИИ</option>
               <option value="local">Локальная модель</option>
