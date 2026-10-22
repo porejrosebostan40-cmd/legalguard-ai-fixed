@@ -41,3 +41,37 @@ it('does not contact a remote host during connection diagnostics', async () => {
     .rejects.toThrow('Удалённые адреса запрещены');
   expect(fetchSpy).not.toHaveBeenCalled();
 });
+
+it('runs analyst and arbiter against an OpenAI-compatible local response', async () => {
+  const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ findings: [{
+        id: 'model-id-is-replaced',
+        claim: 'Суд отметил отсутствие характеристики.',
+        sourceQuote: 'осужденный не представил характеристику.',
+        confidence: 0.92,
+      }] }) } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ decisions: [{
+        id: 'C001-F001',
+        status: 'accepted',
+        legalSignificance: 'medium',
+        reasoning: 'Довод требует сверки с материалами дела.',
+      }] }) } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+  const providers = createLocalProviders('http://127.0.0.1:8080/v1/chat/completions', 'local-model');
+  const source = 'Суд указал: осужденный не представил характеристику.';
+  const findings = await providers.analyst.analyze(source);
+  expect(findings).toHaveLength(1);
+  expect(findings[0].id).toBe('C001-F001');
+  expect(findings[0].sourceQuote).toBe('осужденный не представил характеристику.');
+  expect(findings[0].source?.startLine).toBe(1);
+
+  const decisions = await providers.arbiter.arbitrate(source, findings);
+  expect(decisions).toHaveLength(1);
+  expect(decisions[0].status).toBe('accepted');
+  expect(decisions[0].reasoning).toContain('сверки');
+  expect(fetchSpy).toHaveBeenCalledTimes(2);
+});
