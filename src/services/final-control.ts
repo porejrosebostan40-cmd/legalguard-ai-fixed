@@ -51,7 +51,9 @@ export function runFinalControl(
   if (caseInfo) {
     const requiredFields: Array<[string, string]> = [
       ['номер дела', caseInfo.caseNumber],
-      ['наименование суда', caseInfo.courtName],
+      ['суд, в который подаётся жалоба', caseInfo.recipientCourtName],
+      ['заявитель / осуждённый', caseInfo.clientName],
+      ['наименование суда, вынесшего акт', caseInfo.courtName],
       ['дата судебного акта', caseInfo.verdictDate],
     ];
     for (const [label, value] of requiredFields) {
