@@ -3,7 +3,7 @@ import { combineDocuments, MAX_BATCH_BYTES, MAX_BATCH_FILES, normalizeDocumentTe
 
 const { pdfMock } = vi.hoisted(() => ({ pdfMock: { empty: false, numPages: 1 } }));
 
-function makeDocxZip(): Uint8Array {
+function makeDocxZip(): ArrayBuffer {
   const name = new TextEncoder().encode('word/document.xml');
   const xml = new TextEncoder().encode('<w:document />');
   const centralSize = 46 + name.length;
@@ -19,7 +19,7 @@ function makeDocxZip(): Uint8Array {
   view.setUint16(eocdOffset + 10, 1, true);
   view.setUint32(eocdOffset + 12, centralSize, true);
   view.setUint32(eocdOffset + 16, 0, true);
-  return bytes;
+  return bytes.slice().buffer as ArrayBuffer;
 }
 
 vi.mock('pdfjs-dist', () => ({
