@@ -53,6 +53,14 @@ describe('LegalGuard draft generation', () => {
     expect(result.readyForSubmission).toBe(false);
   });
 
+  it('reports analysis and arbitration progress for each chunk', async () => {
+    const progress: Array<{ currentChunk: number; totalChunks: number; stage: string }> = [];
+    const result = await new LegalGuardPipeline(providers(), (event) => progress.push(event)).run(documentText, caseInfo);
+    expect(result.finalControl?.passed).toBe(true);
+    expect(progress.map((event) => event.stage)).toEqual(['analyst', 'arbiter', 'chunk-complete', 'complete']);
+    expect(progress.every((event) => event.currentChunk === 1 && event.totalChunks === 1)).toBe(true);
+  });
+
   it('analyzes long documents in multiple chunks and namespaces finding IDs', async () => {
     const longDocument = Array.from({ length: 140 }, () => documentText).join('\n\n');
     let analyzedChunks = 0;
