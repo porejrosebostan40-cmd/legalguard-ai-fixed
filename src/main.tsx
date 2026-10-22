@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { LegalGuardPipeline } from './services/legalguard.pipeline';
 import { mockProviders } from './providers/mock.providers';
 import { combineDocuments, readTextDocument, validateDocumentBatch } from './services/document-ingestion';
-import type { DocumentInput } from './services/document-ingestion';
+import { DOCUMENT_ROLE_LABELS, type DocumentInput, type DocumentRole } from './services/document-ingestion';
 import type { ComplaintType, LegalGuardResult } from './core/legalguard.types';
 import { areAllAcceptedFindingsReviewed } from './services/manual-review';
 import { validateCaseInfo } from './services/case-info-validation';
@@ -12,6 +12,7 @@ import './styles.css';
 function App() {
   const [text, setText] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
+  const [documents, setDocuments] = useState<DocumentInput[]>([]);
   const [caseNumber, setCaseNumber] = useState('');
   const [recipientCourtName, setRecipientCourtName] = useState('');
   const [clientName, setClientName] = useState('');
@@ -51,17 +52,28 @@ function App() {
     invalidateResult();
     setText('');
     setFileName(null);
+    setDocuments([]);
     setError(null);
     try {
       validateDocumentBatch(files);
-      const documents: DocumentInput[] = [];
+      const loadedDocuments: DocumentInput[] = [];
       // Sequential parsing avoids loading several large PDF workers into memory at once.
-      for (const file of files) documents.push(await readTextDocument(file));
-      setText(combineDocuments(documents));
-      setFileName(documents.map((document) => document.name).join(', '));
+      for (const file of files) loadedDocuments.push(await readTextDocument(file));
+      setDocuments(loadedDocuments);
+      setText(combineDocuments(loadedDocuments));
+      setFileName(loadedDocuments.map((document) => document.name).join(', '));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Не удалось прочитать документы.');
     }
+  }
+
+  function updateDocumentRole(index: number, role: DocumentRole | undefined) {
+    const updated = documents.map((document, currentIndex) =>
+      currentIndex === index ? { ...document, role } : document,
+    );
+    setDocuments(updated);
+    setText(combineDocuments(updated));
+    invalidateResult();
   }
 
   async function run() {
@@ -192,7 +204,20 @@ function App() {
             <label className="file-button">Загрузить документы<input type="file" multiple disabled={running} accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void loadFiles(files); }} /></label>
             {fileName && <span className="file-name">{fileName}</span>}
           </div>
-          <textarea value={text} disabled={running} onChange={(event) => { setText(event.target.value); setFileName(null); invalidateResult(); }} />
+          {documents.length > 0 && (
+            <div className="document-role-list">
+              <p className="muted">Укажите тип каждого файла. Это ваша метка, а не автоматическая проверка содержимого.</p>
+              {documents.map((document, index) => (
+                <label key={`${document.name}-${index}`}>{document.name}
+                  <select value={document.role ?? ''} disabled={running} onChange={(event) => updateDocumentRole(index, event.target.value ? event.target.value as DocumentRole : undefined)}>
+                    <option value="">Тип не указан</option>
+                    {Object.entries(DOCUMENT_ROLE_LABELS).map(([role, label]) => <option key={role} value={role}>{label}</option>)}
+                  </select>
+                </label>
+              ))}
+            </div>
+          )}
+          <textarea value={text} disabled={running} onChange={(event) => { setText(event.target.value); setFileName(null); setDocuments([]); invalidateResult(); }} />
           {providerMode === 'local' && <button type="button" disabled={running} onClick={() => void selfTestLocalModel()}>Проверить локальный ИИ</button>}
           {diagnosticMessage && providerMode === 'local' && <p className="muted">{diagnosticMessage}</p>}
           <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
