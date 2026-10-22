@@ -148,7 +148,7 @@ function App() {
           {result.arbiterFindings.map((finding) => (
             <div className="finding" key={finding.id}>
               <span className={`finding-status ${finding.status}`}>{finding.status === 'accepted' ? 'принято' : finding.status === 'rejected' ? 'отклонено' : 'требует проверки'}</span>
-              <div><strong>{finding.id}: {finding.claim}</strong><p>{finding.reasoning}</p></div>
+              <div><strong>{finding.id}: {finding.claim}</strong><p>{finding.reasoning}</p><p className="source-quote">Цитата из материала: {finding.source?.quote || finding.sourceQuote || 'не предоставлена'}</p></div>
             </div>
           ))}
         </section>
