@@ -102,3 +102,15 @@ export const localProviders: AIProviderSet = {
     },
   },
 };
+
+
+export async function runLocalModelSelfTest(): Promise<{ modelId: string; status: 'ok' }> {
+  const result = await askJson<{ status: unknown }>(
+    'Выполни только техническую проверку генерации JSON. Не анализируй право. Верни строго объект {"status":"ok"}.',
+    'Это синтетическая самопроверка движка, не судебный материал. Верни {"status":"ok"}.',
+  );
+  if (result.status !== 'ok') {
+    throw new Error('Локальная модель загрузилась, но не прошла проверку структурированного JSON-ответа.');
+  }
+  return { modelId: MODEL_ID, status: 'ok' };
+}
