@@ -14,6 +14,10 @@ header p, .muted { color: #969daa; margin: 6px 0 0; }
 .local-endpoint { margin-top: 12px; max-width: 760px; }
 .local-endpoint .muted { font-size: 12px; }
 .mode-note { margin: 12px 0 0; color: #e1c27b; font-size: 13px; }
+.connection-status { margin: 8px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+.connection-status.ok { color: #8bd49b; }
+.connection-status.error { color: #ef9b9b; }
+.local-endpoint button { width: fit-content; }
 .fields { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 label { display: grid; gap: 6px; color: #aeb4bf; font-size: 12px; }
 input, select { width: 100%; min-width: 0; background: #0d0f13; color: #e7e9ee; border: 1px solid #303641; border-radius: 7px; padding: 9px; }
