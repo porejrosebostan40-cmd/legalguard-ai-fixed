@@ -5,7 +5,7 @@ import type {
 } from '../core/legalguard.types';
 
 function normalizeForComparison(value: string): string {
-  return value.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
+  return value.replace(/\\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
 }
 
 export function runFinalControl(
@@ -16,54 +16,64 @@ export function runFinalControl(
   const blockingReasons: string[] = [];
   const warnings: string[] = [];
   const knownIds = new Set<string>();
-  const duplicateIds = new Set<string>();
   const usedIds = new Set<string>();
   const normalizedDocument = normalizeForComparison(documentText);
 
+  if (!documentText.trim()) {
+    blockingReasons.push('Исходный судебный материал пуст.');
+  }
   if (findings.length === 0) {
     blockingReasons.push('Не выявлено проверяемых оснований. Это не означает, что нарушений нет: требуется содержательный анализ документа.');
   }
 
   for (const finding of findings) {
-    if (knownIds.has(finding.id)) {
-      duplicateIds.add(finding.id);
-      blockingReasons.push(`Идентификатор основания ${finding.id} продублирован.`);
+    const id = typeof finding.id === 'string' ? finding.id.trim() : '';
+    if (!id) {
+      blockingReasons.push('У одного из оснований отсутствует идентификатор.');
+    } else if (knownIds.has(id)) {
+      blockingReasons.push(`Идентификатор основания ${id} продублирован.`);
     }
-    knownIds.add(finding.id);
+    if (id) knownIds.add(id);
 
     if (!Number.isFinite(finding.confidence) || finding.confidence < 0 || finding.confidence > 1) {
-      blockingReasons.push(`Основание ${finding.id} имеет некорректную оценку уверенности.`);
+      blockingReasons.push(`Основание ${id || '(без ID)'} имеет некорректную оценку уверенности.`);
+    }
+
+    if (!['pending', 'accepted', 'rejected', 'needs_review'].includes(finding.status)) {
+      blockingReasons.push(`У основания ${id || '(без ID)'} указан неизвестный статус.`);
+      continue;
     }
 
     if (finding.status === 'pending' || finding.status === 'needs_review') {
-      blockingReasons.push(`Основание ${finding.id} не прошло окончательную проверку.`);
+      blockingReasons.push(`Основание ${id || '(без ID)'} не прошло окончательную проверку.`);
     }
 
     if (finding.status === 'accepted') {
-      const quote = finding.sourceQuote?.trim();
+      const quote = typeof finding.sourceQuote === 'string' ? finding.sourceQuote.trim() : '';
       if (!quote) {
-        blockingReasons.push(`У принятого основания ${finding.id} отсутствует точная цитата из исходного документа.`);
+        blockingReasons.push(`У принятого основания ${id} отсутствует точная цитата из исходного документа.`);
       } else if (!normalizedDocument.includes(normalizeForComparison(quote))) {
-        blockingReasons.push(`Цитата основания ${finding.id} не найдена в исходном документе; требуется ручная сверка.`);
+        blockingReasons.push(`Цитата основания ${id} не найдена в исходном документе; требуется ручная сверка.`);
       }
 
-      if (!finding.reasoning.trim()) {
-        blockingReasons.push(`У принятого основания ${finding.id} отсутствует обоснование.`);
+      if (typeof finding.reasoning !== 'string' || !finding.reasoning.trim()) {
+        blockingReasons.push(`У принятого основания ${id} отсутствует обоснование.`);
       }
-      const legalBases = (finding.legalBasis ?? []).map((basis) => basis.trim()).filter(Boolean);
+
+      const legalBases = Array.isArray(finding.legalBasis)
+        ? finding.legalBasis.filter((basis): basis is string => typeof basis === 'string').map((basis) => basis.trim()).filter(Boolean)
+        : [];
       if (legalBases.length === 0) {
-        blockingReasons.push(`У принятого основания ${finding.id} не указана правовая основа.`);
+        blockingReasons.push(`У принятого основания ${id} не указана предполагаемая правовая основа.`);
       } else {
-        for (const basis of legalBases) {
-          if (!normalizedDocument.includes(normalizeForComparison(basis))) {
-            blockingReasons.push(`Правовая ссылка «${basis}» у основания ${finding.id} не найдена в предоставленных материалах. Её применимость и редакцию нельзя считать проверенными.`);
-          }
-        }
+        // A legal norm normally will not be quoted inside the court act under review.
+        // Its absence from that act is not evidence that the citation is invalid.
+        warnings.push(`Правовую основу основания ${id} необходимо отдельно проверить по официальному источнику и редакции, действовавшей на юридически значимую дату.`);
       }
     }
 
-    if (finding.status === 'rejected' && strategy.some((item) => item.findingId === finding.id)) {
-      blockingReasons.push(`Отклонённое основание ${finding.id} попало в стратегию.`);
+    if (finding.status === 'rejected' && strategy.some((item) => item.findingId === id)) {
+      blockingReasons.push(`Отклонённое основание ${id} попало в стратегию.`);
     }
   }
 
@@ -77,6 +87,16 @@ export function runFinalControl(
       blockingReasons.push(`Основание ${argument.findingId} продублировано в стратегии.`);
     }
     usedIds.add(argument.findingId);
+
+    if (!Number.isInteger(argument.position) || argument.position < 1) {
+      blockingReasons.push(`У довода по основанию ${argument.findingId} некорректный порядковый номер.`);
+    }
+    if (typeof argument.heading !== 'string' || !argument.heading.trim()) {
+      blockingReasons.push(`У довода по основанию ${argument.findingId} отсутствует заголовок.`);
+    }
+    if (typeof argument.argument !== 'string' || !argument.argument.trim()) {
+      blockingReasons.push(`У довода по основанию ${argument.findingId} отсутствует текст аргумента.`);
+    }
   }
 
   for (const finding of findings) {
@@ -91,16 +111,9 @@ export function runFinalControl(
   if (strategy.length === 0) {
     blockingReasons.push('Стратегия защиты пуста; проект жалобы не формируется.');
   }
-  if (duplicateIds.size > 0) {
-    warnings.push('Обнаружены повторяющиеся идентификаторы; результаты анализа нельзя считать надёжными.');
-  }
 
   if (findings.some((finding) => finding.status === 'accepted')) {
-    warnings.push('Наличие цитаты и правовой ссылки в материалах не подтверждает правильность толкования нормы и её редакцию на нужную дату.');
-  }
-
-  if (findings.some((finding) => finding.status === 'accepted')) {
-    warnings.push('Наличие цитаты и правовой ссылки в материалах не подтверждает правильность толкования нормы и её редакцию на нужную дату.');
+    warnings.push('Наличие цитаты и предполагаемой правовой ссылки не подтверждает правильность толкования нормы, её применимость или редакцию на нужную дату.');
   }
 
   return {
