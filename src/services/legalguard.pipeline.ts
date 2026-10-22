@@ -45,7 +45,7 @@ export class LegalGuardPipeline {
       '03 ПРАВОВАЯ ОЦЕНКА',
       'arbiter',
       arbiterFindings.length ? 'ok' : 'warning',
-      `Оценено оснований: ${arbiterFindings.length}. Автоматическая оценка не заменяет проверку юристом.`,
+      `Оценено оснований: ${arbiterFindings.length}. Локальный режим использует три последовательных роли: аналитик, арбитр и критик. Автоматическая оценка не заменяет проверку юристом.`,
     ));
 
     const accepted = arbiterFindings.filter((finding) => finding.status === 'accepted');
