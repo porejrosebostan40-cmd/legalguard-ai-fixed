@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc && vite build",
     "dev": "vite",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.86",
@@ -18,5 +19,7 @@
     "typescript": "latest",
     "vite": "latest"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
 }
