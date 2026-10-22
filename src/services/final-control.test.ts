@@ -73,6 +73,12 @@ describe('runFinalControl', () => {
     expect(result.blockingReasons.some((reason) => reason.includes('календарно корректной'))).toBe(true);
   });
 
+  it('matches source quotes despite whitespace and line-break differences', () => {
+    const finding = acceptedFinding({ sourceQuote: 'Суд установил, что\nосуждённый   прибыл в суд 12 марта.' });
+    const result = runFinalControl(documentText, [finding], [strategy()]);
+    expect(result.blockingReasons.some((reason) => reason.includes('Цитата основания F-1 не найдена'))).toBe(false);
+  });
+
   it('blocks empty source documents', () => {
     const result = runFinalControl('  ', [acceptedFinding()], [strategy()]);
     expect(result.passed).toBe(false);
