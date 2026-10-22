@@ -30,6 +30,7 @@ button:disabled { opacity: .55; cursor: default; }
 .finding-status { font-size: 11px; text-transform: uppercase; font-weight: 800; }
 .finding-status.accepted { color: #8bd49b; } .finding-status.rejected { color: #ef8585; } .finding-status.needs_review { color: #e1c27b; }
 .finding p { margin: 6px 0 0; color: #aeb4bf; }
+.finding-quote { white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px 10px; border-left: 2px solid #6c7788; background: rgba(108, 119, 136, 0.08); }
 .control-block { color: #ef9b9b; } .control-warning { color: #e1c27b; }
 .error-box { margin-top: 12px; padding: 10px; border: 1px solid #744f4f; border-radius: 7px; color: #f2a0a0; }
 .finding-basis { margin-top: 8px; padding: 10px; border-left: 2px solid #d4a85f; background: rgba(212, 168, 95, 0.08); }
