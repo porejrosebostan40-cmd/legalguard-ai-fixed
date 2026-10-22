@@ -113,7 +113,11 @@ function App() {
                 ))}
               </div>
               <div className={result.readyForSubmission ? 'result pass' : 'result block'}>
-                {result.readyForSubmission ? 'ГОТОВО К ПОДАЧЕ' : 'ПОДАЧА ЗАБЛОКИРОВАНА'}
+                {result.readyForSubmission
+                  ? 'ГОТОВО К ПОДАЧЕ'
+                  : result.finalControl?.passed
+                    ? 'ЧЕРНОВИК · ЮРИДИЧЕСКАЯ ПРОВЕРКА ОБЯЗАТЕЛЬНА'
+                    : 'ПОДАЧА ЗАБЛОКИРОВАНА'}
               </div>
             </>
           )}
@@ -143,7 +147,7 @@ function App() {
       {result?.finalDocument && (
         <section className="panel document-preview">
           <div className="document-heading">
-            <h2>Сформированный документ</h2>
+            <h2>Черновик документа · требуется юридическая проверка</h2>
             <button type="button" onClick={() => void copyDocument()}>{copied ? 'Скопировано' : 'Копировать'}</button>
           </div>
           <pre>{result.finalDocument}</pre>
