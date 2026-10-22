@@ -1,9 +1,6 @@
 import { CreateMLCEngine, type MLCEngine } from '@mlc-ai/web-llm';
-import type {
-  AIProviderSet,
-  ArbiterFinding,
-  DeepSeekFinding,
-} from '../core/legalguard.types';
+import type { AIProviderSet, ArbiterFinding, DeepSeekFinding } from '../core/legalguard.types';
+import { validateAnalystFindings, validateArbiterFindings, validateCriticReviews } from '../services/provider-validation';
 
 const MODEL_ID = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
 let enginePromise: Promise<MLCEngine> | null = null;
@@ -57,29 +54,28 @@ const CRITIC_PROMPT = `Ты — третий этап LegalGuard AI, адвок�
 export const localProviders: AIProviderSet = {
   deepSeek: {
     async analyze(documentText: string): Promise<DeepSeekFinding[]> {
-      const result = await askJson<{ findings: DeepSeekFinding[] }>(ANALYST_PROMPT, documentText);
-      if (!Array.isArray(result.findings)) throw new Error('Первый этап вернул неверный формат.');
-      return result.findings;
+      const result = await askJson<{ findings: unknown }>(ANALYST_PROMPT, documentText);
+      return validateAnalystFindings(result.findings);
     },
   },
   chatGPT: {
     async arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
-      const result = await askJson<{ findings: ArbiterFinding[] }>(
+      const result = await askJson<{ findings: unknown }>(
         ARBITER_PROMPT,
         JSON.stringify({ documentText, findings }),
       );
-      if (!Array.isArray(result.findings)) throw new Error('Второй этап вернул неверный формат.');
+      const arbiterFindings = validateArbiterFindings(result.findings);
 
-      const reviews = await askJson<{
-        reviews: Array<{ id: string; status: 'clear' | 'concern' | 'needs_review'; critique: string }>;
-      }>(
+      const reviews = await askJson<{ reviews: unknown }>(
         CRITIC_PROMPT,
         JSON.stringify({ documentText, findings: result.findings }),
       );
-      if (!Array.isArray(reviews.reviews)) throw new Error('Третий этап вернул неверный формат.');
-
-      const reviewById = new Map(reviews.reviews.map((review) => [review.id, review]));
-      return result.findings.map((finding) => {
+      const validatedReviews = validateCriticReviews(reviews.reviews);
+      const knownFindingIds = new Set(arbiterFindings.map((finding) => finding.id));
+      const unknownReview = validatedReviews.find((review) => !knownFindingIds.has(review.id));
+      if (unknownReview) throw new Error(`Третий этап вернул проверку неизвестного основания ${unknownReview.id}.`);
+      const reviewById = new Map(validatedReviews.map((review) => [review.id, review]));
+      return arbiterFindings.map((finding) => {
         const review = reviewById.get(finding.id);
         if (finding.status === 'accepted' && (!review || review.status !== 'clear')) {
           return {
