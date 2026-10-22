@@ -23,7 +23,8 @@ const caseInfo: CaseInfo = {
   caseNumber: '1-23/2026',
   courtName: 'Районный суд',
   verdictDate: '01.10.2026',
-  clientName: '—',
+  clientName: 'Иванов Иван Иванович',
+  recipientCourtName: 'Суд кассационной инстанции',
   complaintType: 'кассационная',
 };
 
