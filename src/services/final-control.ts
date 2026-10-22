@@ -50,8 +50,15 @@ export function runFinalControl(
       if (!finding.reasoning.trim()) {
         blockingReasons.push(`У принятого основания ${finding.id} отсутствует обоснование.`);
       }
-      if (!finding.legalBasis?.some((basis) => basis.trim())) {
+      const legalBases = (finding.legalBasis ?? []).map((basis) => basis.trim()).filter(Boolean);
+      if (legalBases.length === 0) {
         blockingReasons.push(`У принятого основания ${finding.id} не указана правовая основа.`);
+      } else {
+        for (const basis of legalBases) {
+          if (!normalizedDocument.includes(normalizeForComparison(basis))) {
+            blockingReasons.push(`Правовая ссылка «${basis}» у основания ${finding.id} не найдена в предоставленных материалах. Её применимость и редакцию нельзя считать проверенными.`);
+          }
+        }
       }
     }
 
@@ -86,6 +93,10 @@ export function runFinalControl(
   }
   if (duplicateIds.size > 0) {
     warnings.push('Обнаружены повторяющиеся идентификаторы; результаты анализа нельзя считать надёжными.');
+  }
+
+  if (findings.some((finding) => finding.status === 'accepted')) {
+    warnings.push('Наличие цитаты и правовой ссылки в материалах не подтверждает правильность толкования нормы и её редакцию на нужную дату.');
   }
 
   return {
