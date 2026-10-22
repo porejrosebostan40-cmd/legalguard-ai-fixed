@@ -82,11 +82,9 @@ describe('LegalGuard draft generation', () => {
     await expect(new LegalGuardPipeline(providers()).run(tooLong, caseInfo)).rejects.toThrow('превышает безопасный предел');
   });
 
-  it('does not generate a draft when an accepted finding lacks an exact source quote', async () => {
+  it('stops when the arbiter changes an analyst source quote', async () => {
     const badFinding = { ...accepted, sourceQuote: 'Фразы нет в исходном документе.' };
-    const result = await new LegalGuardPipeline(providers(badFinding)).run(documentText, caseInfo);
-    expect(result.finalControl?.passed).toBe(false);
-    expect(result.finalDocument).toBeNull();
+    await expect(new LegalGuardPipeline(providers(badFinding)).run(documentText, caseInfo)).rejects.toThrow('изменил цитату-основание');
   });
 
   it('does not generate a draft while required case metadata is missing', async () => {
