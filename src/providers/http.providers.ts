@@ -1,4 +1,4 @@
-import type { AIProviderSet, ArbiterFinding, DeepSeekFinding } from '../core/legalguard.types';
+import type { AIProviderSet, ArbiterFinding, ComplaintType, DeepSeekFinding } from '../core/legalguard.types';
 import { validateAnalystFindings, validateArbiterFindings } from '../services/provider-validation';
 
 type JsonResponse<T> = { data: T };
@@ -30,14 +30,14 @@ function unwrapFindings(payload: unknown): unknown {
 
 export const httpProviders: AIProviderSet = {
   deepSeek: {
-    async analyze(documentText: string): Promise<DeepSeekFinding[]> {
-      const result = await postJson<unknown>('/api/deepseek/analyze', { documentText });
+    async analyze(documentText: string, complaintType?: ComplaintType): Promise<DeepSeekFinding[]> {
+      const result = await postJson<unknown>('/api/deepseek/analyze', { documentText, complaintType });
       return validateAnalystFindings(unwrapFindings(result));
     },
   },
   chatGPT: {
-    async arbitrate(documentText: string, findings: DeepSeekFinding[]): Promise<ArbiterFinding[]> {
-      const result = await postJson<unknown>('/api/chatgpt/arbitrate', { documentText, findings });
+    async arbitrate(documentText: string, findings: DeepSeekFinding[], complaintType?: ComplaintType): Promise<ArbiterFinding[]> {
+      const result = await postJson<unknown>('/api/chatgpt/arbitrate', { documentText, findings, complaintType });
       return validateArbiterFindings(unwrapFindings(result));
     },
   },
