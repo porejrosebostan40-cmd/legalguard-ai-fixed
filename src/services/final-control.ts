@@ -5,6 +5,7 @@ import type {
   StrategyArgument,
 } from '../core/legalguard.types';
 import { isSourceReferenceGrounded } from './source-attribution';
+import { validateCaseInfo } from './case-info-validation';
 
 function normalizeForComparison(value: string): string {
   return value.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
