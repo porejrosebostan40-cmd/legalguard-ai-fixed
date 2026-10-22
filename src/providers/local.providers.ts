@@ -88,7 +88,7 @@ function splitDocumentIntoChunks(text: string, maxChars = 4500, overlap = 300): 
   while (start < text.length) {
     let end = Math.min(start + maxChars, text.length);
     if (end < text.length) {
-      const lineBreak = text.lastIndexOf('\\n', end);
+      const lineBreak = text.lastIndexOf('\n', end);
       const space = text.lastIndexOf(' ', end);
       const boundary = lineBreak > start + maxChars * 0.6
         ? lineBreak
