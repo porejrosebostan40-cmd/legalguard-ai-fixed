@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { combineDocuments, MAX_BATCH_BYTES, MAX_BATCH_FILES, normalizeDocumentText, readTextDocument, validateDocumentBatch } from './document-ingestion';
 
-const { pdfMock } = vi.hoisted(() => ({ pdfMock: { empty: false } }));
+const { pdfMock } = vi.hoisted(() => ({ pdfMock: { empty: false, numPages: 1 } }));
 
 function makeDocxZip(): Uint8Array {
   const name = new TextEncoder().encode('word/document.xml');
@@ -26,7 +26,8 @@ vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: { workerSrc: '' },
   getDocument: () => ({
     promise: Promise.resolve({
-      numPages: 1,
+      numPages: pdfMock.numPages,
+      destroy: async () => {},
       getPage: async () => ({
         getTextContent: async () => ({
           items: pdfMock.empty ? [] : [{ str: 'Текст из PDF' }],
@@ -49,6 +50,7 @@ vi.mock('fflate', () => ({
 describe('document ingestion', () => {
   beforeEach(() => {
     pdfMock.empty = false;
+    pdfMock.numPages = 1;
     const wordNamespace = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     const textNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'Текст из DOCX', children: [] };
     const secondTextNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'часть', children: [] };
@@ -93,6 +95,12 @@ describe('document ingestion', () => {
     expect(result.mimeType).toBe('application/pdf');
     expect(result.text).toContain('[Страница 1]');
     expect(result.text).toContain('Текст из PDF');
+  });
+
+  it('rejects PDFs with excessive page counts before extraction', async () => {
+    pdfMock.numPages = 301;
+    const file = new File(['pdf bytes'], 'oversized.pdf', { type: 'application/pdf' });
+    await expect(readTextDocument(file)).rejects.toThrow('более 300 страниц');
   });
 
   it('rejects scanned PDFs when no text layer is present', async () => {
