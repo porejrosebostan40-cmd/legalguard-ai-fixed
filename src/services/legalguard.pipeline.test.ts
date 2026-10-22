@@ -32,8 +32,9 @@ function providers(arbiterFinding: ArbiterFinding = accepted): AIProviderSet {
     deepSeek: { analyze: async () => [candidate] },
     chatGPT: {
       arbitrate: async (_documentText, findings) => findings.map((finding) => ({
-        ...arbiterFinding,
         ...finding,
+        ...arbiterFinding,
+        id: finding.id,
         status: arbiterFinding.status,
         legalSignificance: arbiterFinding.legalSignificance,
         reasoning: arbiterFinding.reasoning,
@@ -64,7 +65,7 @@ describe('LegalGuard draft generation', () => {
         arbitrate: async (_chunk, findings) => findings.map((finding) => ({
           ...accepted,
           ...finding,
-          status: 'accepted',
+          status: 'accepted' as const,
           legalSignificance: 'high',
           reasoning: accepted.reasoning,
         })),
