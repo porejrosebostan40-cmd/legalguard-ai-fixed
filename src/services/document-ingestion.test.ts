@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { combineDocuments, MAX_BATCH_BYTES, MAX_BATCH_FILES, normalizeDocumentText, readTextDocument, validateDocumentBatch } from './document-ingestion';
 
 const { pdfMock } = vi.hoisted(() => ({ pdfMock: { empty: false } }));
@@ -28,7 +28,22 @@ vi.mock('fflate', () => ({
 }));
 
 describe('document ingestion', () => {
-  beforeEach(() => { pdfMock.empty = false; });
+  beforeEach(() => {
+    pdfMock.empty = false;
+    const wordNamespace = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+    const textNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'Текст из DOCX', children: [] };
+    const runNode = { namespaceURI: wordNamespace, localName: 'r', children: [textNode] };
+    const paragraphNode = { namespaceURI: wordNamespace, localName: 'p', children: [runNode] };
+    vi.stubGlobal('DOMParser', class {
+      parseFromString() {
+        return {
+          getElementsByTagName: () => [],
+          getElementsByTagNameNS: (_namespace: string, localName: string) => localName === 'p' ? [paragraphNode] : [],
+        };
+      }
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
   it('normalizes line endings and removes null bytes', () => {
     expect(normalizeDocumentText('  Суд\r\nуказал\u0000 факт.  \r\n')).toBe('Суд\nуказал факт.');
   });
