@@ -34,11 +34,12 @@ describe('document ingestion', () => {
     const textNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'Текст из DOCX', children: [] };
     const secondTextNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'часть', children: [] };
     const finalTextNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'Вторая строка', children: [] };
+    const thirdTextNode = { namespaceURI: wordNamespace, localName: 't', textContent: 'Третья строка', children: [] };
     const runNode = { namespaceURI: wordNamespace, localName: 'r', children: [textNode] };
-    const secondRunNode = { namespaceURI: wordNamespace, localName: 'r', children: [finalTextNode] };
+    const secondRunNode = { namespaceURI: wordNamespace, localName: 'r', children: [thirdTextNode] };
     const tabNode = { namespaceURI: wordNamespace, localName: 'tab', children: [] };
     const breakNode = { namespaceURI: wordNamespace, localName: 'br', children: [] };
-    const firstParagraph = { namespaceURI: wordNamespace, localName: 'p', children: [runNode, tabNode, secondTextNode, breakNode] };
+    const firstParagraph = { namespaceURI: wordNamespace, localName: 'p', children: [runNode, tabNode, secondTextNode, breakNode, finalTextNode] };
     const secondParagraph = { namespaceURI: wordNamespace, localName: 'p', children: [secondRunNode] };
     vi.stubGlobal('DOMParser', class {
       parseFromString() {
@@ -87,7 +88,7 @@ describe('document ingestion', () => {
     });
     const result = await readTextDocument(file);
     expect(result.mimeType).toContain('wordprocessingml.document');
-    expect(result.text).toBe('Текст из DOCX\tчасть\nВторая строка');
+    expect(result.text).toBe('Текст из DOCX\tчасть\nВторая строка\nТретья строка');
   });
 
   it('combines multiple files with explicit, sanitized document boundaries', () => {
