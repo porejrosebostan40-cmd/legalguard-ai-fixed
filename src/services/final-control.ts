@@ -6,27 +6,6 @@ import type {
 } from '../core/legalguard.types';
 import { isSourceReferenceGrounded } from './source-attribution';
 
-function isValidCourtDate(value: string): boolean {
-  let year: number;
-  let month: number;
-  let day: number;
-  const dmy = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value);
-  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (dmy) {
-    day = Number(dmy[1]);
-    month = Number(dmy[2]);
-    year = Number(dmy[3]);
-  } else if (iso) {
-    year = Number(iso[1]);
-    month = Number(iso[2]);
-    day = Number(iso[3]);
-  } else {
-    return false;
-  }
-  const date = new Date(year, month - 1, day);
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-}
-
 function normalizeForComparison(value: string): string {
   return value.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
 }
@@ -48,22 +27,7 @@ export function runFinalControl(
   if (!documentText.trim()) {
     blockingReasons.push('Исходный судебный материал пуст.');
   }
-  if (caseInfo) {
-    const requiredFields: Array<[string, string]> = [
-      ['номер дела', caseInfo.caseNumber],
-      ['суд, в который подаётся жалоба', caseInfo.recipientCourtName],
-      ['заявитель / осуждённый', caseInfo.clientName],
-      ['наименование суда, вынесшего акт', caseInfo.courtName],
-      ['дата судебного акта', caseInfo.verdictDate],
-    ];
-    for (const [label, value] of requiredFields) {
-      if (typeof value !== 'string' || !value.trim() || value.trim() === '—') {
-        blockingReasons.push(`Не заполнено обязательное поле: ${label}.`);
-      } else if (label === 'дата судебного акта' && !isValidCourtDate(value.trim())) {
-        blockingReasons.push('Дата судебного акта должна быть календарно корректной и иметь формат ДД.ММ.ГГГГ или ГГГГ-ММ-ДД.');
-      }
-    }
-  }
+  blockingReasons.push(...validateCaseInfo(caseInfo));
 
   if (findings.length === 0) {
     blockingReasons.push('Не выявлено проверяемых оснований. Это не означает, что нарушений нет: требуется содержательный анализ документа.');
