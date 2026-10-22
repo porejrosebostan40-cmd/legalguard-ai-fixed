@@ -1,24 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import type { ArbiterFinding } from '../core/legalguard.types';
-import { areAllAcceptedFindingsReviewed } from './manual-review';
+import { areAllFindingsReviewed } from './manual-review';
 
 const finding = (id: string, status: ArbiterFinding['status']): Pick<ArbiterFinding, 'id' | 'status'> => ({ id, status });
 
 describe('manual review gate', () => {
   it('does not pass when there are no accepted findings', () => {
-    expect(areAllAcceptedFindingsReviewed([finding('F-1', 'rejected')], ['F-1'])).toBe(false);
-    expect(areAllAcceptedFindingsReviewed([], [])).toBe(false);
+    expect(areAllFindingsReviewed([finding('F-1', 'rejected')], ['F-1'])).toBe(false);
+    expect(areAllFindingsReviewed([], [])).toBe(false);
   });
 
   it('blocks when any accepted finding remains unchecked', () => {
-    expect(areAllAcceptedFindingsReviewed([finding('F-1', 'accepted'), finding('F-2', 'accepted')], ['F-1'])).toBe(false);
+    expect(areAllFindingsReviewed([finding('F-1', 'accepted'), finding('F-2', 'accepted')], ['F-1'])).toBe(false);
   });
 
-  it('passes only when every accepted finding has a review acknowledgement', () => {
-    expect(areAllAcceptedFindingsReviewed([finding('F-1', 'accepted'), finding('F-2', 'accepted'), finding('F-3', 'rejected')], ['F-1', 'F-2'])).toBe(true);
-  });
-
-  it('does not require acknowledgements for findings not accepted', () => {
-    expect(areAllAcceptedFindingsReviewed([finding('F-1', 'accepted'), finding('F-2', 'needs_review'), finding('F-3', 'pending')], ['F-1'])).toBe(true);
+  it('blocks until every candidate has been manually reviewed', () => {
+    const findings = [
+      finding('F-1', 'accepted'),
+      finding('F-2', 'rejected'),
+      finding('F-3', 'needs_review'),
+      finding('F-4', 'pending'),
+    ];
+    expect(areAllFindingsReviewed(findings, ['F-1', 'F-2', 'F-3'])).toBe(false);
+    expect(areAllFindingsReviewed(findings, ['F-1', 'F-2', 'F-3', 'F-4'])).toBe(true);
   });
 });
