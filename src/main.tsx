@@ -21,7 +21,8 @@ function App() {
   const [result, setResult] = useState<LegalGuardResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);\n  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   const pipeline = useMemo(
     () => new LegalGuardPipeline(
