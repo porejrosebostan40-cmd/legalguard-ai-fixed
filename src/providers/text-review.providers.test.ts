@@ -22,7 +22,7 @@ describe('text review providers', () => {
   it('finds multiple passages for the same scenario instead of stopping at the first match', async () => {
     const document = [
       'Суд приходит к выводу, что оснований для условно-досрочного освобождения не имеется.',
-      'Суд считает необходимым дальнейшее отбывание наказания.',
+      'Суд не усматривает оснований для условно-досрочного освобождения осуждённого.',
     ].join('\n');
 
     const findings = await textReviewProviders.analyst.analyze(document);
