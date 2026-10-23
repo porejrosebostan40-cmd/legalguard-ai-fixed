@@ -48,3 +48,26 @@ button:disabled { opacity: .55; cursor: default; }
 .document-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; color: #d8dce3; line-height: 1.55; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 @media (max-width: 900px) { .fields { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 760px) { .shell { padding: 14px; } .grid { grid-template-columns: 1fr; } header { flex-direction: column; } .fields, .settings-row { grid-template-columns: 1fr; } }
+
+.agent-list { display: grid; gap: 8px; }
+.agent-card { width: 100%; margin: 0; display: flex; align-items: center; gap: 10px; text-align: left; padding: 11px; background: #0d0f13; color: #e7e9ee; border: 1px solid #303641; border-radius: 9px; }
+.agent-card.selected { border-color: #8aa8e8; background: #151d2b; }
+.agent-light { flex: 0 0 28px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1px solid currentColor; font-weight: 800; }
+.agent-light.completed, .agent-state.completed, .check-pass { color: #8bd49b; }
+.agent-light.warning, .agent-state.warning { color: #e1c27b; }
+.agent-light.failed, .agent-state.failed, .check-fail { color: #ef8585; }
+.agent-light.skipped, .agent-state.skipped { color: #969daa; }
+.agent-card-copy { min-width: 0; flex: 1; display: grid; gap: 4px; }
+.agent-card-copy small { color: #aeb4bf; font-size: 12px; line-height: 1.4; font-weight: 400; }
+.agent-open { color: #b8c9ec; font-size: 11px; white-space: nowrap; }
+.agent-details { margin-top: 16px; }
+.agent-details-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.agent-details h3 { font-size: 14px; margin: 18px 0 9px; }
+.agent-state { font-size: 12px; font-weight: 750; white-space: nowrap; }
+.audit-check { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #292e36; }
+.audit-check p { margin: 4px 0 0; color: #aeb4bf; font-size: 13px; }
+.check-pass, .check-fail { font-weight: 900; }
+.audit-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 420px; overflow: auto; margin: 8px 0; padding: 12px; border-radius: 8px; background: #0d0f13; border: 1px solid #292e36; color: #d8dce3; font-size: 12px; line-height: 1.5; }
+.agent-details details { margin-top: 12px; color: #b8c9ec; }
+.agent-details details summary { cursor: pointer; }
+@media (max-width: 480px) { .agent-card { align-items: flex-start; } .agent-open { display: none; } .agent-details-heading { flex-direction: column; } }
