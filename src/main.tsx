@@ -46,6 +46,7 @@ function App() {
   async function loadFile(file: File | undefined) {
     if (!file) return;
     setError(null);
+    setResult(null);
     setUploadStatus(`Выбран файл: ${file.name}. Чтение…`);
     setLoadingFile(true);
     try {
@@ -63,8 +64,8 @@ function App() {
   }
 
   async function run() {
-    if (text.trim().length < 100) {
-      setError('Вставьте полный текст судебного акта (не менее 100 символов) или загрузите TXT, текстовый PDF либо DOCX.');
+    if (text.trim().length < 20) {
+      setError('Вставьте текст судебного акта (не менее 20 символов) или загрузите TXT, текстовый PDF либо DOCX.');
       setResult(null);
       return;
     }
@@ -143,11 +144,12 @@ function App() {
         <article className="panel">
           <h2>Судебный материал</h2>
           <div className="upload-row">
-            <label className="file-button">{loadingFile ? 'Чтение файла…' : 'Выбрать судебный документ (TXT / PDF / DOCX)'}<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => { const input = event.currentTarget; const file = input.files?.[0]; input.value = ''; if (!file) { setUploadStatus('Файл не выбран.'); return; } void loadFile(file); }} /></label>
+            <label className="file-button">{loadingFile ? 'Чтение файла…' : 'Выбрать судебный документ (TXT / PDF / DOCX)'}<input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" disabled={loadingFile} onChange={(event) => { const input = event.currentTarget; const file = input.files?.[0]; input.value = ''; if (!file) { setUploadStatus('Файл не выбран.'); return; } void loadFile(file); }} /></label>
             {uploadStatus && <span className="file-name" role="status">{uploadStatus}</span>}
           </div>
-          <textarea value={text} onChange={(event) => { setText(event.target.value); setResult(null); }} />
-          <button disabled={running} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
+          <textarea aria-label="Текст судебного акта" placeholder="Вставьте текст судебного акта сюда или выберите файл выше…" value={text} onChange={(event) => { setText(event.target.value); setResult(null); }} />
+          <p className="muted">Знаков: {text.length.toLocaleString('ru-RU')} · слов: {text.trim() ? text.trim().split(/\s+/).length.toLocaleString('ru-RU') : 0}</p>
+          <button disabled={running || loadingFile} onClick={run}>{running ? 'Выполняется…' : 'Запустить анализ'}</button>
           {error && <div className="error-box">{error}</div>}
         </article>
 
@@ -157,6 +159,8 @@ function App() {
           {result && (
             <>
               <p className="run-id">{result.runId}</p>
+              <p className="muted">Найдено фрагментов: {result.findings.length}. Требуют проверки: {result.arbiterFindings.filter((finding) => finding.status === 'needs_review').length}. Принято Арбитром: {result.arbiterFindings.filter((finding) => finding.status === 'accepted').length}.</p>
+              {result.findings.length === 0 && <p className="mode-note">Совпадений по текущим текстовым признакам не найдено. Это не доказывает отсутствие юридически значимых обстоятельств.</p>}
               <div className="trace">
                 {result.trace.map((item) => (
                   <div className="trace-row" key={item.code}>
@@ -170,7 +174,7 @@ function App() {
                   ? 'ГОТОВО К ПОДАЧЕ'
                   : result.finalControl?.passed
                     ? 'ЧЕРНОВИК · ЮРИДИЧЕСКАЯ ПРОВЕРКА ОБЯЗАТЕЛЬНА'
-                    : 'ПОДАЧА ЗАБЛОКИРОВАНА'}
+                    : 'ЧЕРНОВИК НЕ СФОРМИРОВАН'}
               </div>
             </>
           )}
@@ -180,6 +184,7 @@ function App() {
       {result && (
         <section className="panel findings">
           <h2>Решения Арбитра</h2>
+          {result.arbiterFindings.length === 0 && <p className="muted">Решений нет: первичный анализ не обнаружил совпадений по текущим признакам.</p>}
           {result.arbiterFindings.map((finding) => (
             <div className="finding" key={finding.id}>
               <span className={`finding-status ${finding.status}`}>{finding.status === 'accepted' ? 'принято' : finding.status === 'rejected' ? 'отклонено' : 'требует проверки'}</span>
