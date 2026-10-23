@@ -40,7 +40,10 @@ export const textReviewProviders: AIProviderSet = {
         for (const passage of passages) {
           if (!rule.pattern.test(passage)) continue;
 
-          const quote = passage.length > 650 ? passage.slice(0, 647) + '…' : passage;
+          const maxQuoteLength = 650;
+          const quote = passage.length > maxQuoteLength
+            ? passage.slice(0, Math.max(passage.lastIndexOf(' ', maxQuoteLength), 1))
+            : passage;
           const normalizedQuote = quote.replace(/\s+/g, ' ').toLocaleLowerCase('ru-RU');
           const key = rule.label + '|' + normalizedQuote;
           if (seen.has(key)) continue;

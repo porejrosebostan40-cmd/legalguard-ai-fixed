@@ -49,6 +49,16 @@ describe('text review providers', () => {
     expect(findings).toEqual([]);
   });
 
+  it('keeps long excerpts exact so source verification can match them', async () => {
+    const document = 'В характеристике указано ' + 'дополнительный текст '.repeat(60) + 'осуждённый имеет положительное поведение.';
+    const findings = await textReviewProviders.analyst.analyze(document);
+    const finding = findings.find((item) => item.claim === 'Упоминание поведения и характеристики осуждённого');
+
+    expect(finding).toBeTruthy();
+    expect(finding!.sourceQuote!.length).toBeLessThanOrEqual(650);
+    expect(document).toContain(finding!.sourceQuote!);
+  });
+
   it('limits the number of heuristic matches on long documents', async () => {
     const sentence = 'Суд указал, что осуждённый имеет положительную характеристику и 20 поощрений.';
     const findings = await textReviewProviders.analyst.analyze(Array(100).fill(sentence).join('\n'));
