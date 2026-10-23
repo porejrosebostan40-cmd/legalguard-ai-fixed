@@ -18,9 +18,12 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "pdfjs-dist": "^4.10.38",
-    "mammoth": "^1.9.0"
+    "mammoth": "^1.9.0",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/android": "^8.5.3"
   },
   "devDependencies": {
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "@capacitor/cli": "^8.5.3"
   }
 }
