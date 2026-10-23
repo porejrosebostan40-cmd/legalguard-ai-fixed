@@ -36,6 +36,9 @@ jobs:
       - name: Build web assets
         run: npm run build
 
+      - name: Run automated tests
+        run: npm test
+
       - name: Generate Android project
         run: npx cap add android
 
