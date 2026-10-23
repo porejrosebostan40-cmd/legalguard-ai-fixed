@@ -34,4 +34,4 @@ exec "$LLAMA_SERVER" \
   --ctx-size "$CTX_SIZE" \
   --threads "$THREADS" \
   --n-gpu-layers 0 \
-  --cors "http://127.0.0.1:$UI_PORT"
+  --cors-origins "localhost"
