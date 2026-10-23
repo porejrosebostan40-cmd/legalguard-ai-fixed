@@ -75,14 +75,14 @@ if [ "$ready" -ne 1 ]; then
 fi
 
 echo "Локальная модель готова."
-echo "Запускаю интерфейс: http://127.0.0.1:$UI_PORT"
+echo "Запускаю интерфейс: http://localhost:$UI_PORT"
 echo "Остановка обоих процессов: Ctrl+C"
 npm run dev -- --host 127.0.0.1 --port "$UI_PORT" --strictPort >"$LOG_DIR/vite.log" 2>&1 &
 VITE_PID=$!
 
 for _ in $(seq 1 30); do
-  if curl -fsS "http://127.0.0.1:$UI_PORT" >/dev/null 2>&1; then
-    echo "Откройте в браузере: http://127.0.0.1:$UI_PORT"
+  if curl -fsS "http://localhost:$UI_PORT" >/dev/null 2>&1; then
+    echo "Откройте в браузере: http://localhost:$UI_PORT"
     echo "Журнал интерфейса: $LOG_DIR/vite.log"
     wait "$VITE_PID"
     exit $?
