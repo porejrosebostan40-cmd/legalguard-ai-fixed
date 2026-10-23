@@ -4,7 +4,7 @@ import { normalizeDocumentText, readTextDocument } from './document-ingestion';
 describe('document ingestion', () => {
   it('normalizes line endings, removes a UTF-8 BOM, and trims outer whitespace', () => {
     expect(normalizeDocumentText('\uFEFF  Первая строка  \r\nВторая строка\r\n'))
-      .toBe('  Первая строка\nВторая строка');
+      .toBe('Первая строка\nВторая строка');
   });
 
   it('reads a TXT file and assigns a canonical MIME type', async () => {
@@ -14,7 +14,7 @@ describe('document ingestion', () => {
 
     await expect(readTextDocument(file)).resolves.toEqual({
       name: 'decision.txt',
-      text: '  Судебный акт.\nТекст решения.',
+      text: 'Судебный акт.\nТекст решения.',
       mimeType: 'text/plain',
     });
   });
