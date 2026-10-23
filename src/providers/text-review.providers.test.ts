@@ -19,6 +19,19 @@ describe('text review providers', () => {
     }
   });
 
+  it('finds multiple passages for the same scenario instead of stopping at the first match', async () => {
+    const document = [
+      'Суд приходит к выводу, что оснований для условно-досрочного освобождения не имеется.',
+      'Суд считает необходимым дальнейшее отбывание наказания.',
+    ].join('\n');
+
+    const findings = await textReviewProviders.analyst.analyze(document);
+    const relevant = findings.filter((finding) => finding.claim === 'Судебный вывод об отсутствии оснований для УДО');
+
+    expect(relevant).toHaveLength(2);
+    expect(relevant.every((finding) => document.includes(finding.sourceQuote || ''))).toBe(true);
+  });
+
   it('never presents heuristic matches as accepted legal grounds', async () => {
     const document = 'Суд приходит к выводу, что оснований для условно-досрочного освобождения не имеется.';
     const findings = await textReviewProviders.analyst.analyze(document);
@@ -34,5 +47,12 @@ describe('text review providers', () => {
       'Настоящий документ содержит нейтральный текст без указанных тематических формулировок.',
     );
     expect(findings).toEqual([]);
+  });
+
+  it('limits the number of heuristic matches on long documents', async () => {
+    const sentence = 'Суд указал, что осуждённый имеет положительную характеристику и 20 поощрений.';
+    const findings = await textReviewProviders.analyst.analyze(Array(100).fill(sentence).join('\n'));
+
+    expect(findings.length).toBeLessThanOrEqual(80);
   });
 });

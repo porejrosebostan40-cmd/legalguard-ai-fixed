@@ -20,6 +20,8 @@ const rules: Rule[] = [
   { label: 'Ссылка на мнение администрации учреждения или прокурора', pattern: /(?:администраци[ея] исправительн|мнение прокурора|позици[ея] прокурора|представител[ья] администрации)/i },
 ];
 
+const MAX_FINDINGS = 80;
+
 function splitIntoPassages(text: string): string[] {
   return text
     .split(/(?<=[.!?;])\s+|\n+/)
@@ -35,26 +37,34 @@ export const textReviewProviders: AIProviderSet = {
       const seen = new Set<string>();
 
       for (const rule of rules) {
-        const passage = passages.find((item) => rule.pattern.test(item));
-        if (!passage) continue;
-        const quote = passage.length > 650 ? passage.slice(0, 647) + '…' : passage;
-        const key = quote.replace(/\s+/g, ' ').toLocaleLowerCase('ru-RU');
-        if (seen.has(key)) continue;
-        seen.add(key);
-        const index = documentText.indexOf(quote);
-        const startLine = index >= 0 ? documentText.slice(0, index).split('\n').length : undefined;
-        findings.push({
-          id: `TXT-${String(findings.length + 1).padStart(3, '0')}`,
-          claim: rule.label,
-          sourceQuote: quote,
-          source: {
-            documentId: 'current-document',
-            quote,
-            ...(startLine !== undefined ? { startLine, endLine: startLine } : {}),
-          },
-          confidence: 1,
-          legalBasis: [],
-        });
+        for (const passage of passages) {
+          if (!rule.pattern.test(passage)) continue;
+
+          const quote = passage.length > 650 ? passage.slice(0, 647) + '…' : passage;
+          const normalizedQuote = quote.replace(/\s+/g, ' ').toLocaleLowerCase('ru-RU');
+          const key = rule.label + '|' + normalizedQuote;
+          if (seen.has(key)) continue;
+          seen.add(key);
+
+          const index = documentText.indexOf(quote);
+          const startLine = index >= 0 ? documentText.slice(0, index).split('\n').length : undefined;
+          const endLine = startLine !== undefined ? startLine + quote.split('\n').length - 1 : undefined;
+
+          findings.push({
+            id: 'TXT-' + String(findings.length + 1).padStart(3, '0'),
+            claim: rule.label,
+            sourceQuote: quote,
+            source: {
+              documentId: 'current-document',
+              quote,
+              ...(startLine !== undefined ? { startLine, endLine } : {}),
+            },
+            confidence: 1,
+            legalBasis: [],
+          });
+
+          if (findings.length >= MAX_FINDINGS) return findings;
+        }
       }
 
       return findings;

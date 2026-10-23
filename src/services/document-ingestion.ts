@@ -4,6 +4,8 @@ import mammoth from 'mammoth/mammoth.browser';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
+const MAX_DOCUMENT_BYTES = 30 * 1024 * 1024;
+
 export interface DocumentInput {
   name: string;
   text: string;
@@ -12,6 +14,7 @@ export interface DocumentInput {
 
 export function normalizeDocumentText(text: string): string {
   return text
+    .replace(/^\uFEFF/, '')
     .replaceAll('\u0000', '')
     .replaceAll('\r\n', '\n')
     .replaceAll('\r', '\n')
@@ -30,11 +33,12 @@ async function readPdf(file: File): Promise<string> {
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
       const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item) => ('str' in item && typeof item.str === 'string' ? item.str : ''))
-        .filter(Boolean)
-        .join(' ');
-      pages.push(pageText);
+      const parts = content.items.map((item) => {
+        if (!('str' in item) || typeof item.str !== 'string') return '';
+        const hasEndOfLine = 'hasEOL' in item && item.hasEOL;
+        return item.str + (hasEndOfLine ? '\n' : ' ');
+      });
+      pages.push(parts.join(''));
     }
   } finally {
     await pdf.destroy();
@@ -55,26 +59,43 @@ async function readDocx(file: File): Promise<string> {
 }
 
 export async function readTextDocument(file: File): Promise<DocumentInput> {
-  // Android document providers can return a MIME type even when the filename has no extension.
+  if (file.size > MAX_DOCUMENT_BYTES) {
+    throw new Error('Файл превышает 30 МБ. Уменьшите размер или разделите документ на части, чтобы избежать нехватки памяти на телефоне.');
+  }
+
+  // Android document providers may report a generic MIME type or omit it entirely.
   const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() : '';
-  const detectedType = file.type.toLowerCase();
+  const detectedType = (file.type || '').toLowerCase();
   const isPdf = extension === 'pdf' || detectedType === 'application/pdf';
   const isDocx = extension === 'docx' || detectedType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   const isTxt = extension === 'txt' || detectedType === 'text/plain';
-  let text: string;
-  let mimeType = file.type || 'application/octet-stream';
 
-  if (isTxt) {
-    text = normalizeDocumentText(await file.text());
-    mimeType = file.type || 'text/plain';
-  } else if (isPdf) {
-    text = await readPdf(file);
-    mimeType = file.type || 'application/pdf';
-  } else if (isDocx) {
-    text = await readDocx(file);
-    mimeType = file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-  } else {
-    throw new Error('Поддерживаются файлы TXT, текстовые PDF и DOCX. Сканированные PDF пока требуют OCR.');
+  let text: string;
+  let mimeType: string;
+
+  try {
+    if (isTxt) {
+      text = normalizeDocumentText(await file.text());
+      mimeType = 'text/plain';
+    } else if (isPdf) {
+      text = await readPdf(file);
+      mimeType = 'application/pdf';
+    } else if (isDocx) {
+      text = await readDocx(file);
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    } else {
+      throw new Error('Формат файла не поддерживается. Выберите TXT, PDF с текстовым слоем или DOCX.');
+    }
+  } catch (cause) {
+    if (cause instanceof Error && (
+      cause.message.startsWith('Формат файла не поддерживается') ||
+      cause.message.startsWith('В PDF не найден текстовый слой') ||
+      cause.message.startsWith('В DOCX не удалось извлечь текст.')
+    )) {
+      throw cause;
+    }
+    const detail = cause instanceof Error ? cause.message : 'неизвестная ошибка чтения';
+    throw new Error('Не удалось извлечь текст из файла «' + file.name + '»: ' + detail);
   }
 
   if (!text) throw new Error('Файл не содержит извлекаемого текста.');
