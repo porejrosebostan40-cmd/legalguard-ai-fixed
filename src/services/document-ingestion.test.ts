@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeDocumentText, readTextDocument } from './document-ingestion';
 
-function makePdf(textCommands = 'BT /F1 12 Tf 72 720 Td (LEGALGUARD PDF INGESTION TEST) Tj 0 -24 Td (Court decision article 125) Tj ET'): Uint8Array {
+function makePdf(textCommands = 'BT /F1 12 Tf 72 720 Td (LEGALGUARD PDF INGESTION TEST) Tj 0 -24 Td (Court decision article 125) Tj ET'): ArrayBuffer {
   const stream = textCommands;
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
@@ -23,7 +23,8 @@ function makePdf(textCommands = 'BT /F1 12 Tf 72 720 Td (LEGALGUARD PDF INGESTIO
     pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
   }
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
-  return new TextEncoder().encode(pdf);
+  const bytes = new TextEncoder().encode(pdf);
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
 describe('document ingestion', () => {
