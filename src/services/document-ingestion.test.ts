@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { normalizeDocumentText, readTextDocument } from './document-ingestion';
 
 function makePdf(textCommands = 'BT /F1 12 Tf 72 720 Td (LEGALGUARD PDF INGESTION TEST) Tj 0 -24 Td (Court decision article 125) Tj ET'): ArrayBuffer {
@@ -26,6 +27,12 @@ function makePdf(textCommands = 'BT /F1 12 Tf 72 720 Td (LEGALGUARD PDF INGESTIO
   const bytes = new TextEncoder().encode(pdf);
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
+
+beforeAll(() => {
+  // Vitest runs in Node, where the Vite ?url worker import points to a browser-style path.
+  // Resolve the installed PDF.js worker as a file URL for Node's fake-worker loader.
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('../../node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs', import.meta.url).href;
+});
 
 describe('document ingestion', () => {
   it('normalizes line endings, removes a UTF-8 BOM, and trims outer whitespace', () => {
