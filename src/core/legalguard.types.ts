@@ -51,7 +51,7 @@ export interface FinalControlResult {
   checkedFindingIds: string[];
 }
 
-export type PipelineStage = 'documents' | 'analyst' | 'arbiter' | 'strategist' | 'final-control';
+export type PipelineStage = 'documents' | 'analyst' | 'legal-sources' | 'arbiter' | 'strategist' | 'stylist' | 'independent-review' | 'final-control';
 export type TraceStatus = 'ok' | 'warning' | 'error' | 'rejected' | 'pending';
 
 export interface PipelineTraceEntry {
@@ -59,6 +59,22 @@ export interface PipelineTraceEntry {
   stage: PipelineStage;
   status: TraceStatus;
   message: string;
+  timestamp: string;
+}
+
+export type AgentStatus = 'completed' | 'warning' | 'failed' | 'skipped';
+
+export interface AgentAuditRecord {
+  id: PipelineStage;
+  name: string;
+  status: AgentStatus;
+  summary: string;
+  inputSnapshot: string;
+  outputSnapshot: string;
+  beforeText?: string;
+  afterText?: string;
+  changes: string[];
+  checks: { name: string; passed: boolean; detail: string }[];
   timestamp: string;
 }
 
@@ -70,6 +86,7 @@ export interface LegalGuardResult {
   finalControl: FinalControlResult | null;
   finalDocument: string | null;
   trace: PipelineTraceEntry[];
+  agentAudit: AgentAuditRecord[];
   readyForSubmission: boolean;
 }
 

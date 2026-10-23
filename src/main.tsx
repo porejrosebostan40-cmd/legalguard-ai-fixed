@@ -22,6 +22,7 @@ function App() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   const pipeline = useMemo(
     () => new LegalGuardPipeline(
@@ -161,12 +162,18 @@ function App() {
               <p className="run-id">{result.runId}</p>
               <p className="muted">Найдено фрагментов: {result.findings.length}. Требуют проверки: {result.arbiterFindings.filter((finding) => finding.status === 'needs_review').length}. Принято Арбитром: {result.arbiterFindings.filter((finding) => finding.status === 'accepted').length}.</p>
               {result.findings.length === 0 && <p className="mode-note">Совпадений по текущим текстовым признакам не найдено. Это не доказывает отсутствие юридически значимых обстоятельств.</p>}
-              <div className="trace">
-                {result.trace.map((item) => (
-                  <div className="trace-row" key={item.code}>
-                    <span className={`status ${item.status}`}>{item.status === 'ok' ? '✓' : item.status === 'error' ? '✗' : '⚠'}</span>
-                    <span><strong>{item.code}</strong><br />{item.message}</span>
-                  </div>
+              <div className="agent-list">
+                {result.agentAudit.map((agent) => (
+                  <button
+                    type="button"
+                    className={`agent-card ${agent.status} ${selectedAgent === agent.id ? 'selected' : ''}`}
+                    key={agent.id}
+                    onClick={() => setSelectedAgent(selectedAgent === agent.id ? null : agent.id)}
+                  >
+                    <span className={`agent-light ${agent.status}`}>{agent.status === 'completed' ? '✓' : agent.status === 'failed' ? '✕' : agent.status === 'warning' ? '!' : '○'}</span>
+                    <span className="agent-card-copy"><strong>{agent.name}</strong><small>{agent.summary}</small></span>
+                    <span className="agent-open">{selectedAgent === agent.id ? 'Закрыть' : 'Подробнее'}</span>
+                  </button>
                 ))}
               </div>
               <div className={result.readyForSubmission ? 'result pass' : result.finalControl?.passed ? 'result draft' : 'result block'}>
@@ -180,6 +187,29 @@ function App() {
           )}
         </article>
       </section>
+
+      {result && selectedAgent && result.agentAudit.filter((agent) => agent.id === selectedAgent).map((agent) => (
+        <section className="panel agent-details" key={agent.id}>
+          <div className="agent-details-heading">
+            <div><h2>{agent.name}: отчёт о выполнении</h2><p className="muted">{agent.summary}</p></div>
+            <span className={`agent-state ${agent.status}`}>{agent.status === 'completed' ? 'Завершён' : agent.status === 'warning' ? 'Предупреждение' : agent.status === 'failed' ? 'Ошибка' : 'Не выполнялся'}</span>
+          </div>
+          <h3>Проверки результата</h3>
+          {agent.checks.length === 0 && <p className="muted">Для этого этапа нет доступных автоматических проверок.</p>}
+          {agent.checks.map((check) => (
+            <div className="audit-check" key={check.name}>
+              <span className={check.passed ? 'check-pass' : 'check-fail'}>{check.passed ? '✓' : '✕'}</span>
+              <div><strong>{check.name}</strong><p>{check.detail}</p></div>
+            </div>
+          ))}
+          {agent.changes.length > 0 && <><h3>Что изменено</h3><ul>{agent.changes.map((change) => <li key={change}>{change}</li>)}</ul></>}
+          {agent.beforeText !== undefined && <><h3>До обработки</h3><pre className="audit-text">{agent.beforeText || '(пусто)'}</pre></>}
+          {agent.afterText !== undefined && <><h3>После обработки</h3><pre className="audit-text">{agent.afterText || '(пусто)'}</pre></>}
+          <details><summary>Входные данные этапа</summary><pre className="audit-text">{agent.inputSnapshot || '(пусто)'}</pre></details>
+          <details><summary>Фактический результат этапа</summary><pre className="audit-text">{agent.outputSnapshot || '(пусто)'}</pre></details>
+          <p className="muted">Время записи: {new Date(agent.timestamp).toLocaleString('ru-RU')}</p>
+        </section>
+      ))}
 
       {result && (
         <section className="panel findings">
